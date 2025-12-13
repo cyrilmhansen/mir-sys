@@ -8,5 +8,8 @@ links = "mir"
 cc = "1.0"
 bindgen = "0.69"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [dev-dependencies]
 libc = "0.2"
