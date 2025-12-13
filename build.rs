@@ -4,6 +4,8 @@ use std::path::PathBuf;
 fn main() {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     let vendor = PathBuf::from(manifest_dir).join("mir");
+    let target = env::var("TARGET").unwrap_or_default();
+    let profile = env::var("PROFILE").unwrap_or_default();
 
     // 1. Compile C Code
     let mut build = cc::Build::new();
@@ -26,6 +28,10 @@ fn main() {
         .flag("-Wno-sign-compare")
         .flag("-Wno-implicit-function-declaration")
         .warnings(false);
+
+    if target.contains("android") && profile != "release" {
+        build.define("MIR_ANDROID_TRACE", None);
+    }
 
     if env::var("PROFILE").unwrap() == "release" {
         build.flag("-O3");

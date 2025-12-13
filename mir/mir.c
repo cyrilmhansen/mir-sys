@@ -730,6 +730,14 @@ static void hard_reg_name_finish (MIR_context_t ctx);
 #include "mir-alloc-default.c"
 #include "mir-code-alloc-default.c"
 
+#if defined(__ANDROID__) && defined(MIR_ANDROID_TRACE)
+#include <android/log.h>
+#define MIR_ANDROID_LOG_TAG "mir-scan"
+#define MIR_ANDROID_LOGI(...) __android_log_print(ANDROID_LOG_INFO, MIR_ANDROID_LOG_TAG, __VA_ARGS__)
+#else
+#define MIR_ANDROID_LOGI(...) ((void) 0)
+#endif
+
 MIR_context_t _MIR_init (MIR_alloc_t alloc, MIR_code_alloc_t code_alloc) {
   MIR_context_t ctx;
 
@@ -5926,6 +5934,7 @@ static void scan_error (MIR_context_t ctx, const char *format, ...) {
   va_list va;
 
   va_start (va, format);
+  MIR_ANDROID_LOGI("scan_error at ln %lu", (unsigned long) curr_lno);
   if (VARR_LENGTH (char, error_msg_buf) != 0) VARR_POP (char, error_msg_buf); /* remove last '\0' */
   sprintf (message, "ln %lu: ", (unsigned long) curr_lno);
   VARR_PUSH_ARR (char, error_msg_buf, message, strlen (message));
@@ -6298,6 +6307,7 @@ void MIR_scan_string (MIR_context_t ctx, const char *str) {
   int bss_p, ref_p, lref_p, expr_p, string_p, global_p, local_p, push_op_p, read_p, disp_p;
   insn_name_t in, el;
 
+  MIR_ANDROID_LOGI("MIR_scan_string: begin ctx=%p str=%p", (void *) ctx, (void *) str);
   VARR_TRUNC (char, error_msg_buf, 0);
   curr_lno = 1;
   input_string = str;
@@ -6305,6 +6315,13 @@ void MIR_scan_string (MIR_context_t ctx, const char *str) {
   t.code = TC_NL;
   for (;;) {
     if (setjmp (error_jmp_buf)) {
+#if defined(__ANDROID__) && defined(MIR_ANDROID_TRACE)
+      if (VARR_LENGTH (char, error_msg_buf) != 0) {
+        MIR_ANDROID_LOGI("MIR_scan_string: recoverable scan error: %s", VARR_ADDR (char, error_msg_buf));
+      } else {
+        MIR_ANDROID_LOGI("MIR_scan_string: recoverable scan error (no message)");
+      }
+#endif
       while (t.code != TC_NL && t.code != TC_EOFILE)
         scan_token (ctx, &t, get_string_char, unget_string_char);
       if (t.code == TC_EOFILE) break;
