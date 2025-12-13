@@ -11,11 +11,12 @@ fn main() {
     build
         .include(&vendor)
         .file(vendor.join("mir.c"))
-        .file(vendor.join("mir-gen.c")) // This internally includes mir-gen-x86_64.c etc.
+        .file(vendor.join("mir-gen.c")) // This internally includes mir-gen-*.c
         .flag("-std=gnu11") // Required for MIR GNU extensions
         .flag("-fsigned-char") // Critical for ARM/Android
-        .flag("-fno-tree-sra")
-        .flag("-fno-ipa-cp-clone")
+        // GCC-only flags: Clang (Android NDK) may not support them.
+        .flag_if_supported("-fno-tree-sra")
+        .flag_if_supported("-fno-ipa-cp-clone")
         .flag("-fPIC")
         // Suppress C compiler warnings
         .flag("-Wno-abi")
