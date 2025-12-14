@@ -29,7 +29,7 @@ fn main() {
         .flag("-Wno-implicit-function-declaration")
         .warnings(false);
 
-    if target.contains("android") && profile != "release" {
+    if target.contains("android") {
         build.define("MIR_ANDROID_TRACE", None);
     }
 
