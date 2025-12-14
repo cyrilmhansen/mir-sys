@@ -93,56 +93,6 @@ pub mod code_alloc {
 #[cfg(unix)]
 mod tests {
     use super::*;
-    use libc::{
-        mmap, mprotect, munmap, size_t, MAP_ANONYMOUS, MAP_FAILED, MAP_PRIVATE, PROT_EXEC,
-        PROT_READ, PROT_WRITE,
-    };
-    use std::ffi::{c_int, c_void, CString};
-    use std::ptr;
-
-    // --- Custom Allocator (Required for Android/Modern Linux) ---
-    unsafe extern "C" fn test_mem_map(len: size_t, _user_data: *mut c_void) -> *mut c_void {
-        let ptr = mmap(
-            ptr::null_mut(),
-            len,
-            PROT_READ | PROT_WRITE,
-            MAP_PRIVATE | MAP_ANONYMOUS,
-            -1,
-            0,
-        );
-        if ptr == MAP_FAILED {
-            ptr::null_mut()
-        } else {
-            ptr
-        }
-    }
-
-    unsafe extern "C" fn test_mem_unmap(
-        ptr: *mut c_void,
-        len: size_t,
-        _user_data: *mut c_void,
-    ) -> c_int {
-        munmap(ptr, len)
-    }
-
-    unsafe extern "C" fn test_mem_protect(
-        ptr: *mut c_void,
-        len: size_t,
-        prot: MIR_mem_protect_t,
-        _user_data: *mut c_void,
-    ) -> c_int {
-        let mut native_prot = 0;
-        if prot == MIR_mem_protect_PROT_WRITE_EXEC {
-            native_prot = PROT_READ | PROT_WRITE;
-        } else if prot == MIR_mem_protect_PROT_READ_EXEC {
-            native_prot = PROT_READ | PROT_EXEC;
-        }
-        if mprotect(ptr, len, native_prot) != 0 {
-            -1
-        } else {
-            0
-        }
-    }
 
     fn get_test_allocator() -> MIR_code_alloc {
         code_alloc::unix_mmap()
