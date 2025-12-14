@@ -14,15 +14,31 @@ pub mod code_alloc {
         PROT_EXEC, PROT_READ, PROT_WRITE,
     };
     use std::ptr;
+    #[cfg(target_os = "android")]
+    use std::ffi::CString;
 
     unsafe extern "C" fn mem_map(len: size_t, _user_data: *mut c_void) -> *mut c_void {
-        // Android can restrict adding PROT_EXEC via mprotect; map with PROT_EXEC upfront.
+        // W^X: allocate RW and later switch to RX for execution.
+        let ptr = mmap(
+            ptr::null_mut(),
+            len,
+            PROT_READ | PROT_WRITE,
+            MAP_PRIVATE | MAP_ANONYMOUS,
+            -1,
+            0,
+        );
         #[cfg(target_os = "android")]
-        let prot = PROT_READ | PROT_WRITE | PROT_EXEC;
-        #[cfg(not(target_os = "android"))]
-        let prot = PROT_READ | PROT_WRITE;
-
-        let ptr = mmap(ptr::null_mut(), len, prot, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        if ptr == MAP_FAILED {
+            let tag = b"mir-alloc\0";
+            let msg = CString::new(format!("mmap(len={}) failed errno={}", len, *libc::__errno()))
+                .unwrap_or_else(|_| CString::new("mmap failed").unwrap());
+            android_log_sys::__android_log_print(
+                android_log_sys::LogPriority::ERROR as _,
+                tag.as_ptr() as *const _,
+                b"%s\0".as_ptr() as *const _,
+                msg.as_ptr(),
+            );
+        }
         if ptr == MAP_FAILED { ptr::null_mut() } else { ptr }
     }
 
@@ -37,20 +53,30 @@ pub mod code_alloc {
         _user_data: *mut c_void,
     ) -> c_int {
         let native_prot = if prot == MIR_mem_protect_PROT_WRITE_EXEC {
-            #[cfg(target_os = "android")]
-            {
-                PROT_READ | PROT_WRITE | PROT_EXEC
-            }
-            #[cfg(not(target_os = "android"))]
-            {
-                PROT_READ | PROT_WRITE
-            }
+            // W^X: writable but not executable
+            PROT_READ | PROT_WRITE
         } else if prot == MIR_mem_protect_PROT_READ_EXEC {
             PROT_READ | PROT_EXEC
         } else {
             return -1;
         };
-        if mprotect(ptr, len, native_prot) != 0 { -1 } else { 0 }
+        let rc = mprotect(ptr, len, native_prot);
+        #[cfg(target_os = "android")]
+        if rc != 0 {
+            let tag = b"mir-alloc\0";
+            let msg = CString::new(format!(
+                "mprotect(ptr={:p}, len={}, prot={}) failed errno={}",
+                ptr, len, native_prot, *libc::__errno()
+            ))
+            .unwrap_or_else(|_| CString::new("mprotect failed").unwrap());
+            android_log_sys::__android_log_print(
+                android_log_sys::LogPriority::ERROR as _,
+                tag.as_ptr() as *const _,
+                b"%s\0".as_ptr() as *const _,
+                msg.as_ptr(),
+            );
+        }
+        if rc != 0 { -1 } else { 0 }
     }
 
     pub fn unix_mmap() -> MIR_code_alloc {
