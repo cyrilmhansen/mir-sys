@@ -5,7 +5,6 @@ fn main() {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     let vendor = PathBuf::from(manifest_dir).join("mir");
     let target = env::var("TARGET").unwrap_or_default();
-    let profile = env::var("PROFILE").unwrap_or_default();
 
     // 1. Compile C Code
     let mut build = cc::Build::new();
