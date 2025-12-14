@@ -11,8 +11,10 @@ fn main() {
 
     build
         .include(&vendor)
+        .include(vendor.join("c2mir")) // Add c2mir include path
         .file(vendor.join("mir.c"))
         .file(vendor.join("mir-gen.c")) // This internally includes mir-gen-*.c
+        .file(vendor.join("c2mir/c2mir.c")) // Add c2mir source
         .flag("-std=gnu11") // Required for MIR GNU extensions
         .flag("-fsigned-char") // Critical for ARM/Android
         // GCC-only flags: Clang (Android NDK) may not support them.
@@ -43,8 +45,9 @@ fn main() {
 
     let bindings = bindgen::Builder::default()
         // Use a wrapper header to handle include deduplication automatically
-        .header_contents("wrapper.h", "#include \"mir.h\"\n#include \"mir-gen.h\"")
+        .header_contents("wrapper.h", "#include \"mir.h\"\n#include \"mir-gen.h\"\n#include \"c2mir.h\"")
         .clang_arg(format!("-I{}", vendor.display()))
+        .clang_arg(format!("-I{}", vendor.join("c2mir").display()))
         .clang_arg("-std=gnu11")
         .allowlist_function("MIR_.*")
         .allowlist_function("_MIR_.*") // Required for initialization
@@ -52,6 +55,8 @@ fn main() {
         .allowlist_var("MIR_.*")
         .allowlist_type("DLIST_.*")
         .allowlist_type("VARR_.*")
+        .allowlist_function("c2mir_.*") // Add c2mir allowlist
+        .allowlist_type("c2mir_.*")
         // Let bindgen handle FILE and va_list (do not blocklist them)
         .layout_tests(false)
         .derive_default(true)
