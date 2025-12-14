@@ -14,11 +14,23 @@
 #ifndef _WIN32
 #include <sys/mman.h>
 #include <unistd.h>
+#include <errno.h>
+
+#if defined(__ANDROID__) && defined(MIR_ANDROID_TRACE)
+#include <android/log.h>
+#define MIR_ANDROID_LOG_TAG "mir-alloc-c"
+#define MIR_ANDROID_LOGE(...) __android_log_print(ANDROID_LOG_ERROR, MIR_ANDROID_LOG_TAG, __VA_ARGS__)
+#else
+#define MIR_ANDROID_LOGE(...) ((void) 0)
+#endif
 
 static inline int get_native_mem_protect_flags (MIR_mem_protect_t prot) {
   return prot == PROT_WRITE_EXEC ?
 #if defined(__riscv)
     (PROT_WRITE | PROT_READ | PROT_EXEC)
+#elif defined(__ANDROID__)
+    /* Enforce W^X on Android: keep pages non-executable while writing. */
+    (PROT_WRITE | PROT_READ)
 #else
     (PROT_WRITE | PROT_EXEC)
 #endif
@@ -33,7 +45,13 @@ static inline int get_native_mem_protect_flags (MIR_mem_protect_t prot) {
 static int default_mem_protect (void *addr, size_t len, MIR_mem_protect_t prot, void *user_data CODE_ALLOC_UNUSED) {
   int native_prot = get_native_mem_protect_flags (prot);
 #if !defined(__APPLE__) || !defined(__aarch64__)
-  return mprotect (addr, len, native_prot);
+  int rc = mprotect (addr, len, native_prot);
+#if defined(__ANDROID__) && defined(MIR_ANDROID_TRACE)
+  if (rc != 0) {
+    MIR_ANDROID_LOGE("mprotect(addr=%p,len=%zu,prot=%d) failed errno=%d", addr, len, native_prot, errno);
+  }
+#endif
+  return rc;
 #else
   if ((native_prot & PROT_WRITE) && pthread_jit_write_protect_supported_np ())
     pthread_jit_write_protect_np (FALSE);
@@ -60,7 +78,14 @@ static void *default_mem_map (size_t len, void *user_data CODE_ALLOC_UNUSED) {
   return mmap (NULL, len, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS | MAP_JIT,
                -1, 0);
 #else
-  return mmap (NULL, len, PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  /* Start RW and switch to RX for execution (W^X). */
+  void *ptr = mmap (NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+#if defined(__ANDROID__) && defined(MIR_ANDROID_TRACE)
+  if (ptr == MAP_FAILED) {
+    MIR_ANDROID_LOGE("mmap(len=%zu) failed errno=%d", len, errno);
+  }
+#endif
+  return ptr;
 #endif
 }
 #else
