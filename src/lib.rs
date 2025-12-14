@@ -371,6 +371,95 @@ mod c2mir_tests {
             assert_eq!(val, 42);
 
             // 7. Cleanup
+            println!("Debug: Finished");
+        }
+    }
+
+    #[test]
+    fn test_c2mir_compile_sieve() {
+        unsafe {
+            // 1. Setup Context
+            let mut code_alloc = code_alloc::unix_mmap();
+            let ctx = _MIR_init(ptr::null_mut(), &mut code_alloc);
+            MIR_gen_init(ctx);
+            MIR_gen_set_optimize_level(ctx, 1);
+
+            // 2. Initialize C2MIR
+            c2mir_init(ctx);
+
+            // 3. Register external functions
+            MIR_load_external(
+                ctx,
+                CString::new("printf").unwrap().as_ptr(),
+                libc::printf as *mut c_void,
+            );
+            MIR_load_external(
+                ctx,
+                CString::new("abort").unwrap().as_ptr(),
+                libc::abort as *mut c_void,
+            );
+
+            // 4. Prepare C source
+            let c_source = include_str!("../mir/sieve.c");
+            let mut reader = StringReader {
+                data: c_source.bytes().collect(),
+                cursor: 0,
+            };
+
+            // 5. Compile
+            let mut options: c2mir_options = std::mem::zeroed();
+            
+            let result = c2mir_compile(
+                ctx,
+                &mut options,
+                Some(getc_func),
+                &mut reader as *mut _ as *mut c_void,
+                b"sieve.c\0".as_ptr() as *const _,
+                ptr::null_mut(),
+            );
+
+            assert_eq!(result, 1, "Compilation of sieve.c failed");
+
+            // 6. Link
+            let module_list = MIR_get_module_list(ctx);
+            let module = (*module_list).tail;
+            assert!(!module.is_null());
+
+            MIR_load_module(ctx, module);
+            MIR_link(ctx, Some(MIR_set_gen_interface), None);
+
+            // 7. Execute main
+            let target_func_name = CString::new("main").unwrap();
+            let mut func_item = (*module).items.head;
+            let mut found_func = ptr::null_mut();
+
+            while !func_item.is_null() {
+                 if (*func_item).item_type == MIR_item_type_t_MIR_func_item {
+                    let name_ptr = MIR_item_name(ctx, func_item);
+                    let name = std::ffi::CStr::from_ptr(name_ptr);
+                    if name == target_func_name.as_c_str() {
+                        found_func = func_item;
+                        break;
+                    }
+                }
+                func_item = (*func_item).item_link.next;
+            }
+            assert!(!found_func.is_null(), "Function 'main' not found");
+
+            let fun_ptr = MIR_gen(ctx, found_func);
+            assert!(!fun_ptr.is_null());
+
+            let rust_func: extern "C" fn() -> c_int = std::mem::transmute(fun_ptr);
+            
+            // Capture stdout to verify output? Or just let it print.
+            // Sieve prints results.
+            println!("Running sieve...");
+            let result_code = rust_func();
+            println!("Sieve returned: {}", result_code);
+            
+            assert_eq!(result_code, 0);
+
+            // 8. Cleanup
             c2mir_finish(ctx);
             MIR_gen_finish(ctx);
             MIR_finish(ctx);
