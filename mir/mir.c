@@ -1992,13 +1992,18 @@ void MIR_link (MIR_context_t ctx, void (*set_interface) (MIR_context_t ctx, MIR_
     void *a;
   } v;
 
+  MIR_ANDROID_LOGI("MIR_link: begin ctx=%p modules_to_link=%zu", (void *) ctx,
+                   VARR_LENGTH (MIR_module_t, modules_to_link));
+
   for (size_t i = 0; i < VARR_LENGTH (MIR_module_t, modules_to_link); i++) {
     m = VARR_GET (MIR_module_t, modules_to_link, i);
+    MIR_ANDROID_LOGI("MIR_link: pass1 module[%zu]=%s", i, m->name);
     simplify_module_init (ctx);
     for (item = DLIST_HEAD (MIR_item_t, m->items); item != NULL;
          item = DLIST_NEXT (MIR_item_t, item))
       if (item->item_type == MIR_func_item) {
         assert (item->data == NULL);
+        MIR_ANDROID_LOGI("MIR_link: simplify_func %s", item->u.func->name);
         if (simplify_func (ctx, item, TRUE)) item->data = (void *) 1; /* flag inlining */
       } else if (item->item_type == MIR_import_item) {
         if ((tab_item = item_tab_find (ctx, item->u.import_id, &environment_module)) == NULL) {
@@ -2027,9 +2032,11 @@ void MIR_link (MIR_context_t ctx, void (*set_interface) (MIR_context_t ctx, MIR_
   }
   for (size_t i = 0; i < VARR_LENGTH (MIR_module_t, modules_to_link); i++) {
     m = VARR_GET (MIR_module_t, modules_to_link, i);
+    MIR_ANDROID_LOGI("MIR_link: pass2 module[%zu]=%s", i, m->name);
     for (item = DLIST_HEAD (MIR_item_t, m->items); item != NULL;
          item = DLIST_NEXT (MIR_item_t, item)) {
       if (item->item_type == MIR_func_item && item->data != NULL) {
+        MIR_ANDROID_LOGI("MIR_link: process_inlines %s", item->u.func->name);
         process_inlines (ctx, item);
         item->data = NULL;
 #if 0
@@ -2045,6 +2052,7 @@ void MIR_link (MIR_context_t ctx, void (*set_interface) (MIR_context_t ctx, MIR_
       /* lref data are set up in interpreter or generator */
       if (item->item_type != MIR_expr_data_item) continue;
       expr_item = item->u.expr_data->expr_item;
+      MIR_ANDROID_LOGI("MIR_link: interp expr_data");
       MIR_interp (ctx, expr_item, &res, 0);
       type = expr_item->u.func->res_types[0];
       switch (type) {
@@ -2069,15 +2077,20 @@ void MIR_link (MIR_context_t ctx, void (*set_interface) (MIR_context_t ctx, MIR_
   if (set_interface != NULL) {
     while (VARR_LENGTH (MIR_module_t, modules_to_link) != 0) {
       m = VARR_POP (MIR_module_t, modules_to_link);
+      MIR_ANDROID_LOGI("MIR_link: set_interface module=%s", m->name);
       for (item = DLIST_HEAD (MIR_item_t, m->items); item != NULL;
            item = DLIST_NEXT (MIR_item_t, item))
         if (item->item_type == MIR_func_item) {
           finish_func_interpretation (item, ctx->alloc); /* in case if it was used for expr data */
+          MIR_ANDROID_LOGI("MIR_link: set_interface func=%s", item->u.func->name);
           set_interface (ctx, item);
         }
     }
+    MIR_ANDROID_LOGI("MIR_link: set_interface finish");
     set_interface (ctx, NULL); /* finish interface setting */
   }
+
+  MIR_ANDROID_LOGI("MIR_link: done");
 }
 
 static const char *insn_name (MIR_insn_code_t code) {
