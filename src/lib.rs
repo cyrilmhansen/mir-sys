@@ -93,6 +93,8 @@ pub mod code_alloc {
 #[cfg(unix)]
 mod tests {
     use super::*;
+    use std::ffi::CString;
+    use std::ptr;
 
     fn get_test_allocator() -> MIR_code_alloc {
         code_alloc::unix_mmap()
