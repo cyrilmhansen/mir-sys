@@ -16,14 +16,13 @@ pub mod code_alloc {
     use std::ptr;
 
     unsafe extern "C" fn mem_map(len: size_t, _user_data: *mut c_void) -> *mut c_void {
-        let ptr = mmap(
-            ptr::null_mut(),
-            len,
-            PROT_READ | PROT_WRITE,
-            MAP_PRIVATE | MAP_ANONYMOUS,
-            -1,
-            0,
-        );
+        // Android can restrict adding PROT_EXEC via mprotect; map with PROT_EXEC upfront.
+        #[cfg(target_os = "android")]
+        let prot = PROT_READ | PROT_WRITE | PROT_EXEC;
+        #[cfg(not(target_os = "android"))]
+        let prot = PROT_READ | PROT_WRITE;
+
+        let ptr = mmap(ptr::null_mut(), len, prot, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         if ptr == MAP_FAILED { ptr::null_mut() } else { ptr }
     }
 
@@ -38,7 +37,14 @@ pub mod code_alloc {
         _user_data: *mut c_void,
     ) -> c_int {
         let native_prot = if prot == MIR_mem_protect_PROT_WRITE_EXEC {
-            PROT_READ | PROT_WRITE
+            #[cfg(target_os = "android")]
+            {
+                PROT_READ | PROT_WRITE | PROT_EXEC
+            }
+            #[cfg(not(target_os = "android"))]
+            {
+                PROT_READ | PROT_WRITE
+            }
         } else if prot == MIR_mem_protect_PROT_READ_EXEC {
             PROT_READ | PROT_EXEC
         } else {
