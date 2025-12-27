@@ -58,7 +58,4 @@ Complexity Analysis
     - **AST**: $O(N)$ (proportional to the complexity of the function body).
     - **Symbol Tables**: $O(S)$ where $S$ is the number of unique identifiers and macros.
 
-API Reference
--------------
-.. doxygenfile:: c2mir.h
-   :project: MIR
+
