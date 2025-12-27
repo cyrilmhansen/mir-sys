@@ -18,6 +18,7 @@ The Anatomy of a C JIT
    :caption: Technical Reference:
 
    api_reference
+   diagrams
 
 Indices and tables
 ==================

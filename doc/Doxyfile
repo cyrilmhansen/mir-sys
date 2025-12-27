@@ -1,40 +1,52 @@
-# 1. Project Settings
 PROJECT_NAME           = "MIR"
 PROJECT_NUMBER         = 0.2
 OUTPUT_DIRECTORY       = _build
-GENERATE_XML           = YES
-GENERATE_HTML          = NO
+GENERATE_XML           = NO
+GENERATE_HTML          = YES
+HTML_OUTPUT            = doxygen-html
 GENERATE_LATEX         = NO
-HAVE_DOT               = NO
+HAVE_DOT               = YES
+DOT_IMAGE_FORMAT       = svg
+INTERACTIVE_SVG        = YES
+DOT_GRAPH_MAX_NODES    = 64
+CALL_GRAPH             = YES
+CALLER_GRAPH           = YES
 
-# 2. Source Selection
-INPUT                  = ../mir
+# Limit API extraction to the public headers to avoid duplicate symbol noise
+# from architecture-specific backends and internal implementation files.
+INPUT                  = ../mir/mir.h \
+                         ../mir/mir-gen.h \
+                         ../mir/c2mir/c2mir.h
 RECURSIVE              = YES
-# Force C language parsing
+OPTIMIZE_OUTPUT_FOR_C  = YES
 EXTENSION_MAPPING      = c=C h=C
 
-# 3. Filtering (The Secret Weapon)
-# Run the filter script on c2mir.c before parsing
+# --- FILTERING ---
 FILTER_PATTERNS        = */c2mir.c=./filter_c2mir.sh
 
-# 4. Exclusion (Refined)
-# Exclude the "included" files to stop duplication.
-# We also exclude the architecture-specific generator files because
-# their functions are static and often identical in name (e.g. target_init).
-EXCLUDE_PATTERNS       = */mir-gen-*.c \
+# --- EXCLUSIONS ---
+# We must explicitly exclude every file that is #included into another file
+# to prevent "Duplicate Declaration" errors.
+EXCLUDE_PATTERNS       = *.md \
+                         */mir-gen-x86_64.c \
+                         */mir-gen-aarch64.c \
+                         */mir-gen-ppc64.c \
+                         */mir-gen-s390x.c \
+                         */mir-gen-riscv64.c \
                          */mir-interp.c \
                          */mir-alloc-default.c \
                          */mir-code-alloc-default.c \
                          */c2mir-driver.c \
-                         */mir-gen.c
+                         */mir-*-code.c \
+                         */mir-*-ABI-code.c
 
-# 5. Macro Handling
+# --- MACROS ---
 ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
 SKIP_FUNCTION_MACROS   = NO
+WARN_IF_UNDOCUMENTED   = NO
 
-# Explicitly define standard C types to satisfy the C++ parser
 PREDEFINED             = \
     "MIR_UNUSED=" \
     "MIR_NO_RETURN=" \
@@ -53,6 +65,7 @@ PREDEFINED             = \
     "VARR(T)=struct VARR_##T" \
     "HTAB(T)=struct HTAB_##T" \
     "DLIST(T)=struct DLIST_##T" \
+    "DLIST_LINK(T)=struct DLIST_LINK_##T" \
     "REP8(M, a1, a2, a3, a4, a5, a6, a7, a8)= M(a1); M(a2); M(a3); M(a4); M(a5); M(a6); M(a7); M(a8);" \
     "REP7(M, a1, a2, a3, a4, a5, a6, a7)= M(a1); M(a2); M(a3); M(a4); M(a5); M(a6); M(a7);" \
     "REP6(M, a1, a2, a3, a4, a5, a6)= M(a1); M(a2); M(a3); M(a4); M(a5); M(a6);" \
@@ -80,9 +93,13 @@ PREDEFINED             = \
     "mir_ullong=unsigned long long" \
     "size_t=unsigned long" \
     "MIR_type_t=int" \
-    "MIR_reg_t=unsigned int"
+    "MIR_reg_t=unsigned int" \
+    "MIR_insn_code_t=int" \
+    "MIR_op_mode_t=int" \
+    "D(f)=static node_t f(c2m_ctx_t c2m_ctx, int no_err_p)" \
+    "DA(f)=static node_t f(c2m_ctx_t c2m_ctx, int no_err_p, node_t arg)" \
+    "P(f)=" "PT(t)=" "PTP(t, p)=" "PTN(t)=" "PE(f, l)=" "PTE(t, p, l)="
 
-# 6. Silence Noise
 EXCLUDE_SYMBOLS        = mirc \
                          iso646_str \
                          stdalign_str \

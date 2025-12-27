@@ -8,8 +8,4 @@ Stack Layouts
 Each architecture defines its own stack frame layout. 
 For example, on x86_64, the register save area size differs between Windows and Linux.
 
-.. doxygenvariable:: reg_save_area_size
-   :project: MIR
-
-.. note::
-   The variable above is extracted directly from the source code. If you see it multiple times, it is because it is defined statically in multiple mir-gen-*.c files. Doxygen aggregates them here.
+The backend keeps per-target constants such as ``reg_save_area_size`` in the corresponding ``mir-gen-*.c`` files to size stack frames and spill slots. On System V x86_64 the save area is 176 bytes; on Windows it is 192 bytes because of shadow space rules.

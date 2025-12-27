@@ -10,6 +10,4 @@ The Context
 -----------
 The state of the world is held in the context structure.
 
-.. doxygenstruct:: MIR_context
-   :project: MIR
-   :members:
+``MIR_context_t`` (declared in ``mir/mir.h``) owns allocator hooks, module lists, and target-specific state. Each context is independent so multiple interpreters or JITs can run safely in the same process. A context is created with ``MIR_init`` and destroyed with ``MIR_finish``.
