@@ -11,7 +11,12 @@ release = '0.2'
 extensions = [
     'sphinx_rtd_theme',
     'sphinx.ext.graphviz',
+    'breathe',
 ]
+
+# Breathe Configuration
+breathe_projects = { "MIR": "_build/xml" }
+breathe_default_project = "MIR"
 
 # Optional: Mermaid diagrams via sphinxcontrib-mermaid (skip gracefully if missing)
 try:
@@ -49,6 +54,7 @@ latex_elements = {
     # Literal blocks (code) often overflow margins in PDFs. 
     # This snippet creates a smaller font environment for code blocks.
     'preamble': r'''
+        \special{pdf:minorversion 7}
         \sloppy
         \fvset{fontsize=\small}
         \RecustomVerbatimEnvironment{Verbatim}{Verbatim}{fontsize=\small}
