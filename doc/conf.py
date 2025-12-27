@@ -54,7 +54,13 @@ latex_elements = {
     # Literal blocks (code) often overflow margins in PDFs. 
     # This snippet creates a smaller font environment for code blocks.
     'preamble': r'''
+        % Ensure the PDF output supports embedded 1.7 diagrams when using xdvipdfmx.
+        \makeatletter
+        \@ifundefined{pdfminorversion}{}{\pdfminorversion=7}
+        \special{pdf:minorversion=7}
         \special{pdf:minorversion 7}
+        \special{dvipdfmx:config z 7}
+        \makeatother
         \sloppy
         \fvset{fontsize=\small}
         \RecustomVerbatimEnvironment{Verbatim}{Verbatim}{fontsize=\small}
