@@ -1,0 +1,3 @@
+sphinx>=4.0
+breathe
+sphinx-rtd-theme

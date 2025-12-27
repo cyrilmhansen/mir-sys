@@ -1,0 +1,103 @@
+# 1. Project Settings
+PROJECT_NAME           = "MIR"
+PROJECT_NUMBER         = 0.2
+OUTPUT_DIRECTORY       = _build
+GENERATE_XML           = YES
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+HAVE_DOT               = NO
+
+# 2. Source Selection
+INPUT                  = ../mir
+RECURSIVE              = YES
+# Force C language parsing
+EXTENSION_MAPPING      = c=C h=C
+
+# 3. Filtering (The Secret Weapon)
+# Run the filter script on c2mir.c before parsing
+FILTER_PATTERNS        = */c2mir.c=./filter_c2mir.sh
+
+# 4. Exclusion (Refined)
+# Exclude the "included" files to stop duplication.
+# We also exclude the architecture-specific generator files because
+# their functions are static and often identical in name (e.g. target_init).
+EXCLUDE_PATTERNS       = */mir-gen-*.c \
+                         */mir-interp.c \
+                         */mir-alloc-default.c \
+                         */mir-code-alloc-default.c \
+                         */c2mir-driver.c \
+                         */mir-gen.c
+
+# 5. Macro Handling
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+SKIP_FUNCTION_MACROS   = NO
+
+# Explicitly define standard C types to satisfy the C++ parser
+PREDEFINED             = \
+    "MIR_UNUSED=" \
+    "MIR_NO_RETURN=" \
+    "MIR_VARR_NO_RETURN=" \
+    "MIR_HTAB_NO_RETURN=" \
+    "MIR_HTAB_UNUSED=" \
+    "MIR_VARR_UNUSED=" \
+    "ALLOC_UNUSED=" \
+    "CODE_ALLOC_UNUSED=" \
+    "DEF_VARR(T)=" \
+    "DEF_HTAB(T)=" \
+    "DEF_DLIST(T,L)=" \
+    "DEF_DLIST_LINK(T)=" \
+    "DEF_DLIST_TYPE(T)=" \
+    "DEF_DLIST_CODE(T,L)=" \
+    "VARR(T)=struct VARR_##T" \
+    "HTAB(T)=struct HTAB_##T" \
+    "DLIST(T)=struct DLIST_##T" \
+    "REP8(M, a1, a2, a3, a4, a5, a6, a7, a8)= M(a1); M(a2); M(a3); M(a4); M(a5); M(a6); M(a7); M(a8);" \
+    "REP7(M, a1, a2, a3, a4, a5, a6, a7)= M(a1); M(a2); M(a3); M(a4); M(a5); M(a6); M(a7);" \
+    "REP6(M, a1, a2, a3, a4, a5, a6)= M(a1); M(a2); M(a3); M(a4); M(a5); M(a6);" \
+    "REP5(M, a1, a2, a3, a4, a5)= M(a1); M(a2); M(a3); M(a4); M(a5);" \
+    "REP4(M, a1, a2, a3, a4)= M(a1); M(a2); M(a3); M(a4);" \
+    "REP3(M, a1, a2, a3)= M(a1); M(a2); M(a3);" \
+    "REP2(M, a1, a2)= M(a1); M(a2);" \
+    "TAG_EL(x)=TAG_##x," \
+    "TYPE_EL(x)=MIR_T_##x," \
+    "OP_EL(x)=MIR_OP_##x," \
+    "INSN_EL(x)=MIR_##x," \
+    "ERR_EL(x)=MIR_##x##_error," \
+    "HREG_EL(x)=x##_HARD_REG," \
+    "TC_EL(x)=TC_##x," \
+    "ITEM_EL(x)=MIR_##x##_item," \
+    "uint8_t=unsigned char" \
+    "uint16_t=unsigned short" \
+    "uint32_t=unsigned int" \
+    "uint64_t=unsigned long long" \
+    "int64_t=long long" \
+    "int32_t=int" \
+    "mir_llong=long long" \
+    "mir_long=long" \
+    "mir_ulong=unsigned long" \
+    "mir_ullong=unsigned long long" \
+    "size_t=unsigned long" \
+    "MIR_type_t=int" \
+    "MIR_reg_t=unsigned int"
+
+# 6. Silence Noise
+EXCLUDE_SYMBOLS        = mirc \
+                         iso646_str \
+                         stdalign_str \
+                         stdbool_str \
+                         stdnoreturn_str \
+                         stdarg_str \
+                         stddef_str \
+                         stdint_str \
+                         float_str \
+                         limits_str \
+                         *_str \
+                         *_pat \
+                         standard_includes \
+                         target_hard_reg_names \
+                         insn_descs \
+                         insn_nops \
+                         insn_op_modes \
+                         patterns
