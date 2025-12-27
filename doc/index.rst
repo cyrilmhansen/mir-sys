@@ -13,6 +13,7 @@ The Anatomy of a C JIT
    04_jit_pipeline
    05_target_architecture
    07_varargs
+   09_embedding
    06_missing_links
 
 .. toctree::
