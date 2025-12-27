@@ -10,22 +10,34 @@ help:
 
 .PHONY: help Makefile doxygen html pdf tectonic
 
+# 0. Clean
+clean:
+	@rm -rf $(BUILDDIR) _static/diagrams generated_diagrams.rst
+
 # 1. Run Doxygen to generate XML
 doxygen:
 	doxygen Doxyfile
 
+# 1b. Copy Diagrams & Import Doxygen Graphs
+copy-diagrams:
+	@mkdir -p _static/diagrams
+	@cp ../mir/*.svg _static/diagrams/ || true
+	@cp ../mir/c2mir/*.svg _static/diagrams/ || true
+	@python3 scripts/import_diagrams.py
+
+# 1c. Convert SVGs to PDF for LaTeX
+convert-svgs: copy-diagrams
+	@bash scripts/convert_svgs.sh
+
 # 2. Build HTML (Narrative + Code)
-html: doxygen
+html: doxygen copy-diagrams
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 # 3. Build PDF (Requires LaTeX installed)
-# We use -M latexpdf which generates the .tex files and runs pdflatex
-pdf: doxygen
-	@TEXMFVAR="$(abspath $(BUILDDIR)/texmf-var)" \
-	  $(SPHINXBUILD) -M latexpdf "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+pdf: doxygen convert-svgs
+	@$(SPHINXBUILD) -M latexpdf "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-# 4. Build via Tectonic (requires `tectonic` binary installed)
-tectonic: doxygen
-	@$(SPHINXBUILD) -b latex "$(SOURCEDIR)" "$(BUILDDIR)/latex" $(SPHINXOPTS) $(O)
-	@cd "$(BUILDDIR)/latex" && tectonic "MIR_Technical_Manual.tex" --outdir . --keep-logs
-	@echo "Tectonic PDF written to $(BUILDDIR)/latex/MIR_Technical_Manual.pdf"
+# 4. Build PDF using Tectonic (Reproducible)
+tectonic: doxygen convert-svgs
+	@$(SPHINXBUILD) -M latex "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	@cd $(BUILDDIR)/latex && tectonic MIR_Technical_Manual.tex

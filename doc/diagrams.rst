@@ -1,24 +1,52 @@
 Diagrams
 ========
 
-This appendix collects the automatically generated diagrams and hand-written sketches.
+This appendix collects the architectural diagrams found in the codebase.
 
-Doxygen (automatic)
--------------------
-The Doxygen HTML output now includes class diagrams, call graphs, and caller graphs for public APIs. Build the docs and open ``_build/doxygen-html/index.html``; graph-rich pages include inline SVGs you can zoom and click through.
+Project Overview
+----------------
 
-Sphinx Mermaid (manual)
------------------------
-Use Mermaid blocks to document control flow or pipelines directly in the narrative. Install ``sphinxcontrib-mermaid`` (already listed in ``requirements.txt``) and then write::
+**Current State of MIR**
 
-   .. mermaid::
-      flowchart TD
-        parse[Parse C] --> mir[Emit MIR]
-        mir --> ssa[SSA + Opts]
-        ssa --> ra[Register Allocate]
-        ra --> mach[Machine Code]
-        mach --> exec[JIT / Interp]
+.. image:: _static/diagrams/mir3.*
+   :align: center
+   :alt: Current MIR Architecture
 
-Graphviz (manual)
+**Future Vision**
+
+.. image:: _static/diagrams/mirall.*
+   :align: center
+   :alt: Future MIR Architecture
+
+JIT Internal Pipeline
+---------------------
+
+The following diagram illustrates the transformation phases within `mir-gen.c`.
+
+.. image:: _static/diagrams/mir-gen.*
+   :align: center
+   :alt: MIR Generator Pipeline
+
+C to MIR Compiler
 -----------------
-The built-in ``graphviz`` directive remains available if you prefer DOT syntax.
+
+Structure of the `c2mir` compiler.
+
+.. image:: _static/diagrams/c2mir.*
+   :align: center
+   :alt: C2MIR Compiler Structure
+
+Interactive Diagrams
+--------------------
+
+(Use Mermaid syntax here for new diagrams)
+
+.. mermaid::
+
+    graph TD
+        A[C Code] -->|c2m| B(MIR Binary)
+        B -->|mir-interp| C{Execution}
+        C -->|Interpret| D[Slow / Immediate]
+        C -->|JIT| E[Fast / Warmup]
+
+.. include:: generated_diagrams.rst
