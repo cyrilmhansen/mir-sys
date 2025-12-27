@@ -41,12 +41,22 @@ Interactive Diagrams
 
 (Use Mermaid syntax here for new diagrams)
 
-.. mermaid::
+.. graphviz::
 
-    graph TD
-        A[C Code] -->|c2m| B(MIR Binary)
-        B -->|mir-interp| C{Execution}
-        C -->|Interpret| D[Slow / Immediate]
-        C -->|JIT| E[Fast / Warmup]
+   digraph G {
+      node [fontname="Helvetica", shape=box];
+      edge [fontname="Helvetica", fontsize=10];
+
+      src [label="C Code"];
+      bin [label="MIR Binary"];
+      exec [label="Execution", shape=diamond];
+      interp [label="Interpret\n(Slow / Immediate)"];
+      jit [label="JIT\n(Fast / Warmup)"];
+
+      src -> bin [label="c2m"];
+      bin -> exec [label="mir-interp"];
+      exec -> interp [label="Interpret"];
+      exec -> jit [label="JIT"];
+   }
 
 .. include:: generated_diagrams.rst
