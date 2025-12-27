@@ -36,8 +36,10 @@ html: doxygen copy-diagrams
 # 3. Build PDF (Requires LaTeX installed)
 pdf: doxygen convert-svgs
 	@$(SPHINXBUILD) -M latexpdf "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	@bash scripts/normalize_pdfs.sh "$(BUILDDIR)/latex"
 
 # 4. Build PDF using Tectonic (Reproducible)
 tectonic: doxygen convert-svgs
 	@$(SPHINXBUILD) -M latex "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	@bash scripts/normalize_pdfs.sh "$(BUILDDIR)/latex"
 	@cd $(BUILDDIR)/latex && tectonic MIR_Technical_Manual.tex

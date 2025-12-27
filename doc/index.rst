@@ -17,6 +17,7 @@ The Anatomy of a C JIT
    10_modules_and_linking
    09_embedding
    06_missing_links
+   12_licensing
 
 .. toctree::
    :maxdepth: 2
