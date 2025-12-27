@@ -15,6 +15,7 @@ Target Breakdown
 x86_64 (System V)
 ~~~~~~~~~~~~~~~~~
 This is the most complex implementation.
+
 - **Register Save Area**: 176 bytes.
     - 6 General Purpose Registers (RDI, RSI, RDX, RCX, R8, R9) $\times$ 8 bytes = 48 bytes.
     - 8 XMM Registers (XMM0-XMM7) $\times$ 16 bytes = 128 bytes.
@@ -28,6 +29,7 @@ This is the most complex implementation.
 AArch64 (AAPCS64)
 ~~~~~~~~~~~~~~~~~
 Similar complexity, but distinct separation between integer and vector registers.
+
 - **Register Save Area**: Variable size, up to ~300 bytes if all registers are saved.
 - **va_list Structure**:
     - `__stack`: Pointer to stack arguments.
@@ -39,6 +41,7 @@ Similar complexity, but distinct separation between integer and vector registers
 RISC-V & PPC64
 ~~~~~~~~~~~~~~
 These architectures often simplify the problem by forcing varargs onto the stack or using a simpler pointer-based `va_list`.
+
 - **RISC-V**: `va_list` is simply a `void*` pointing to the next argument on the stack. The caller often handles the setup.
 
 The MIR Solution

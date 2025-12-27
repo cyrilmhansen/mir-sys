@@ -116,11 +116,6 @@ The Generator Context
 ---------------------
 The generator maintains its own state, separate from the main `MIR_context_t`. This allows the JIT to be torn down or re-initialized independently.
 
-.. doxygenfunction:: MIR_gen_init
-   :project: MIR
-.. doxygenfunction:: MIR_gen_finish
-   :project: MIR
-
 Target Support
 --------------
 The JIT backend is modular. It supports:
