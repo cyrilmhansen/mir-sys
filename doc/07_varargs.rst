@@ -48,7 +48,7 @@ The MIR Solution
 ----------------
 MIR abstracts these ABI nightmares into three target-agnostic instructions.
 
-.. code-block:: mir
+.. code-block:: none
 
    va_start va_list_ptr
    va_arg   val_ptr, va_list_ptr, type_mem
