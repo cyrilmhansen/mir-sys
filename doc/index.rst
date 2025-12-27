@@ -11,6 +11,7 @@ The Anatomy of a C JIT
    08_c2mir
    03_interpreter
    04_jit_pipeline
+   11_thunks_and_shims
    05_target_architecture
    07_varargs
    10_modules_and_linking
