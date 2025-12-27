@@ -57,6 +57,7 @@ MIR abstracts these ABI nightmares into three target-agnostic instructions.
 1. VA_START
 ~~~~~~~~~~~
 **Usage**: `va_start va`
+
 - **JIT Implementation**:
     - Allocates the **Register Save Area** on the stack frame (if the target requires it).
     - Emits instructions to **store** all incoming argument registers (RDI..R9, XMM0..7 on x64) into this area.
@@ -66,6 +67,7 @@ MIR abstracts these ABI nightmares into three target-agnostic instructions.
 2. VA_ARG
 ~~~~~~~~~~
 **Usage**: `va_arg val, va, type`
+
 - **JIT Implementation**:
     - Generates complex branching logic **inline**.
     - **Branch 1**: Check if the argument fits in the register offset (e.g., `gp_offset < 48`).
@@ -77,6 +79,7 @@ MIR abstracts these ABI nightmares into three target-agnostic instructions.
 3. VA_END
 ~~~~~~~~~~
 **Usage**: `va_end va`
+
 - **JIT Implementation**: Usually a no-op in MIR, as stack cleanup is handled by the function epilogue.
 - **Complexity**: $O(1)$.
 
