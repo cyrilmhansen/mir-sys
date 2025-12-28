@@ -53,12 +53,20 @@ Execution & Optimization
 ------------------------
 
 Interpreter
-    The engine that executes MIR code directly without compiling it to machine code. Useful for debugging and rapid iteration.
-    *See:* :doc:`03_interpreter`.
+    The engine that executes MIR code directly without compiling it to machine code. In this project, the interpreter is compiled directly into the heart of the core library to ensure execution capability even when JIT is unavailable.
+    *See:* :doc:`03_interpreter`, :doc:`19_mir_implementation` (Section 72).
 
 Generator (``mir-gen``)
     The component that translates MIR IR into native machine code for the host architecture.
     *See:* :doc:`04_jit_pipeline`, :doc:`19_mir_implementation` (Section 2).
+
+Disassembly
+    The process of converting raw machine code bytes back into human-readable assembly instructions. MIR uses system tools like ``objdump`` via pipes to provide this capability for debugging.
+    *See:* :doc:`19_mir_implementation` (Section 69).
+
+Target Inclusion
+    The architectural pattern of including target-specific C files directly into the main implementation to create a monolithic, highly-coupled backend for each CPU architecture.
+    *See:* :doc:`19_mir_implementation` (Section 70).
 
 Simplification
     A transformation pass that canonicalizes MIR code (e.g., splitting memory-to-memory moves) to make it suitable for the generator.
