@@ -8,13 +8,19 @@ The Anatomy of a C JIT
 
    01_philosophy
    02_the_ir
-   08_c2mir
+   13_mir_header
+   14_mir_types
+   15_mir_memory
+   16_mir_architecture
+   17_mir_context_modules
+   18_mir_api
    03_interpreter
    04_jit_pipeline
-   11_thunks_and_shims
-   05_target_architecture
-   07_varargs
    10_modules_and_linking
+   05_target_architecture
+   11_thunks_and_shims
+   07_varargs
+   08_c2mir
    09_embedding
    06_missing_links
    12_licensing
