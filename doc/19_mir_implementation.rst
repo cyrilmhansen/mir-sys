@@ -733,8 +733,58 @@ This structure holds the state of the transcription.
 
 
 
-But wait! What is this ``reduce_encode_put``? It seems we are not just writing bytes; we are feeding a hungry algorithm. The binary writer (``put_byte``) doesn't just write to disk; it feeds the compression engine.
+66. The Decoding Chamber: Binary Resurrection
+-------------------------------------------
 
+We have now traveled full circle. We have seen how to write the sacred binary scrolls; now we must learn to read them. ``MIR_read`` is the resurrection ritual. It takes the frozen bytes from disk and breathes life back into them, reconstructing the vibrant object graph of modules, functions, and instructions.
 
+66.1 Originality: The Tag-Driven Recursive Descent
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Next:** We will see the **Writers** (``write_insn``, ``write_module``) that use these primitives to serialize the complex graph of a MIR program. The plot thickens!
+Most binary formats are "struct dumps" or "fixed schemas." MIR's binary format is different. It is a **Stream of Consciousness**.
+
+*   **The Originality:** The format is essentially a bytecode for a state machine that reconstructs the AST. It doesn't just say "Here is a function"; it says "Start Function. Name it 'foo'. Add argument. Add argument. End Function." It mirrors the ``MIR_scan_string`` text parser's logic almost perfectly, but consumes binary tokens instead of ASCII characters.
+*   **The Convention:** It follows a **Tag-Length-Value (TLV)** philosophy, but highly optimized.
+    *   **Tiny Integers (``TAG_U0``):** Integers < 128 are embedded directly into the top bit of the tag byte. This is a classic compression trick (used in UTF-8, LEB128, Protocol Buffers), but MIR's implementation is bespoke and dead simple.
+    *   **Implicit Context:** The reader knows where it is. If it just read a ``TAG_MEM_DISP``, it knows the next token *must* be an integer displacement. It doesn't need self-describing schemas for every field.
+
+66.2 The Hidden Detail: String Interning on the Fly
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An inexperienced reader might miss ``read_all_strings``.
+
+*   **The Trick:** The binary file starts with a **String Table**. All strings used anywhere in the module are dumped at the start.
+*   **The Benefit:** When the rest of the file refers to a function name or a variable, it just uses an integer index (``TAG_NAME1``...``TAG_NAME4``). The reader looks up the interned string in ``bin_strings``. This means string comparison during loading is fast (integer comparison), and memory usage is minimized.
+
+66.3 The Label Puzzle: Forward References
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Labels are the bane of single-pass parsers. You might jump to a label that hasn't been defined yet.
+
+*   **The Solution:** ``to_lab``.
+    *   When the reader sees a label ID (``TAG_LAB``), it checks ``func_labels``.
+    *   If the label exists, great.
+    *   If not, it **pre-creates** the label (``create_label``) and stores it.
+    *   Later, when the label definition is encountered in the stream, the pre-created object is used.
+    This resolves the "chicken-and-egg" problem of forward jumps without needing a second pass.
+
+66.4 The Safety Net: ``reduce_decode``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Just like the writer had a compressor, the reader has a decompressor (``reduce_decode_get``).
+
+*   **The Detail:** The binary reader doesn't read from the file directly. It pulls bytes from the *decompression engine*, which pulls from the file. The complexity of LZ-style compression is completely hidden from the MIR parsing logic.
+
+67. The End of ``mir.c``
+------------------------
+
+We have reached the absolute end of the core file. We have seen the birth, life, death, and resurrection (IO) of MIR code.
+
+*   **The Adventure:** We started with empty structs and ended with a fully serializable, optimizing, dynamic compiler infrastructure.
+*   **The Next Chapter:** The ``mir.c`` file is the **Mind**. It understands the *meaning* of the code. But it cannot *execute* it. To run, we need a **Body**. We need machine code.
+
+Our journey must now cross the bridge to **``mir-gen.c``**. That is where the abstract ``MIR_ADD`` becomes a concrete ``0x01 0xC8`` (x86 add). That is where the infinite virtual registers clash for survival in the finite physical register file. That is the realm of the **Backend**.
+
+Gather your things. The abstract world is behind us. The concrete world of assembly awaits.
+
+**End of `mir.c` Deep Dive.**
