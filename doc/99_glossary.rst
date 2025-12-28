@@ -127,6 +127,22 @@ Constant Folding
     An optimization technique where the compiler evaluates constant expressions (like ``2 + 2``) at compile-time instead of generating code to calculate them at runtime.
     *See:* :doc:`08_c2mir` (Section 4).
 
+Context (``MIR_context_t``)
+    The primary container for all MIR state, including modules, functions, strings, and allocators. Multiple contexts can exist independently in the same process.
+    *See:* :doc:`09_embedding` (Section 1).
+
+Thunk
+    A tiny, dynamically generated piece of machine code that acts as a trampoline. In MIR, thunks are used for lazy compilation, "trapping" the first call to a function to trigger the JIT generator.
+    *See:* :doc:`09_embedding` (Section 4.2).
+
+Shim
+    An adapter layer between two different calling conventions. MIR generates shims to allow standard C code to call interpreted MIR functions by translating the ABI (registers/stack) into the interpreter's value-array format.
+    *See:* :doc:`09_embedding` (Section 4.1).
+
+Relocation
+    The process of "patching" absolute or relative addresses in machine code after the final memory location of a function or data item is known.
+    *See:* :doc:`23_mir_backends` (Section 6).
+
 Blue Painting
     A term from the C standard's macro expansion rules where a macro currently being expanded is marked as unavailable for further expansion to prevent infinite recursion.
     *See:* :doc:`08_c2mir` (Section 2).
