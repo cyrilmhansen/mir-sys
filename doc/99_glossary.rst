@@ -119,6 +119,14 @@ Literal Pool
     A dedicated region of memory within a machine code block used to store large constants (immediates) that are too big to fit inside a single CPU instruction.
     *See:* :doc:`23_mir_backends` (Section 2.3).
 
+L-Value
+    An expression that refers to a memory location and can appear on the left-hand side of an assignment. In C2MIR, l-values are identified during the Context Pass.
+    *See:* :doc:`08_c2mir` (Section 4).
+
+Constant Folding
+    An optimization technique where the compiler evaluates constant expressions (like ``2 + 2``) at compile-time instead of generating code to calculate them at runtime.
+    *See:* :doc:`08_c2mir` (Section 4).
+
 Blue Painting
     A term from the C standard's macro expansion rules where a macro currently being expanded is marked as unavailable for further expansion to prevent infinite recursion.
     *See:* :doc:`08_c2mir` (Section 2).

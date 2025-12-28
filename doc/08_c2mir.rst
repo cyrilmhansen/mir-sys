@@ -13,6 +13,7 @@ The compilation process is a tightly integrated sequence of transformations:
 .. image:: _static/diagrams/c2mir_pipeline.*
    :alt: C2MIR Pipeline
    :align: center
+   :width: 100%
 
 1.  **Preprocessor Pass**: Generates a stream of tokens from source files.
 2.  **Parsing Pass**: Builds an **AST (Abstract Syntax Tree)** using recursive descent.
@@ -42,23 +43,57 @@ Unlike traditional compilers that pipeline text (``cpp | cc1``), C2MIR's preproc
 
 The parser implements the C11 grammar (minus a few optional features like atomics). It is a **Manually Written Recursive Descent Parser** with **Speculative Backtracking**.
 
-- **Backtracking (``TRY``)**: C's grammar is ambiguous. Is ``(A)*B`` a multiplication or a cast? C2MIR solves this with the ``TRY(func)`` macro. It snapshots the current token position and speculatively attempts to parse a rule. If it hits a dead end, it rewinds the clock and tries a different path.
-- **The Lexer Hack**: To distinguish between identifiers and typedef names, C2MIR maintains a ``symbol_tab`` that tracks the current scope. The parser feeds information back to the lexer so it knows when an ID has become a **Type**.
+3.1 The Grammar Macros
+~~~~~~~~~~~~~~~~~~~~~~
 
-.. _c2m_declarators:
+To keep the code readable and close to the C standard, C2MIR uses a domain-specific language built on C macros:
 
-4. Arcane Arts: Complex C Types and Bitfields
-----------------------------------------------
+- **``D(name)``**: Defines a parsing function (a "non-terminal").
+- **``P(func)``**: Calls a parsing function and returns an error node if it fails.
+- **``TRY(func)``**: The **Speculative Scout**. It attempts to parse a rule but allows for failure without halting the entire process.
+- **``PT(token)``**: Matches a specific token type (e.g., ``PT('(')``).
 
-C type declarations are famously counter-intuitive. ``int *(*f())[5]`` is a function returning a pointer to an array of pointers to integers.
+3.2 Speculative Backtracking
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **The Solution**: C2MIR uses a recursive ``type`` structure that mirrors the nested nature of C declarations.
-- **Bitfield Layout**: Implementing bitfields requires deep knowledge of the host's **Endianness**.
-    - **Little Endian**: Bits are typically packed from the least significant bit (LSB) up.
-    - **Big Endian**: Bits are packed from the most significant bit (MSB) down.
-    - C2MIR's ``set_type_layout`` function handles this "Bit Squeeze" by consulting the target-specific headers (e.g., ``cx86_64.h``).
+C's grammar is famously ambiguous. For example, ``(A)*B`` could be:
+1.  A cast of ``*B`` to type ``A``.
+2.  A multiplication of variable ``A`` and ``B``.
 
-5. Computational Complexity
+C2MIR resolves this by using ``record_start()`` and ``record_stop()``. When ``TRY(f)`` is called, the parser "bookmarks" its current position in the token stream. If the speculative path fails, it "rewinds" the stream to the bookmark and tries the next alternative.
+
+.. _c2m_lexer_hack:
+
+3.3 The Lexer Hack and Symbol Sovereignty
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One of the oldest riddles in C compiler design is the **Lexer Hack**. Because C allows users to define new type names (via ``typedef``), the lexer must know if an identifier is a variable or a type to provide the correct token to the parser.
+
+- **The Shared Knowledge**: C2MIR's parser and lexer share a ``symbol_tab`` (a high-speed hash table).
+- **Scope Management**: As the parser enters a new block (``{ ... }``), it creates a new **Scope**. When a typedef is encountered, it is added to the current scope.
+- **The Query**: When the lexer sees ``MyType``, it checks the ``symbol_tab``. If ``MyType`` is registered as a ``S_REGULAR`` symbol with a typedef attribute, it returns a type-specific token; otherwise, it returns a generic ``T_ID``.
+
+.. _c2m_context_pass:
+
+4. The Context Pass: Semantic Enlightenment
+------------------------------------------
+
+Once the AST is built, it is a "skeleton" of the program. The **Context Pass** (the ``check`` function) provides the "soul" by adding type information and verifying C's strict rules.
+
+- **Type Resolution**: Every expression node is annotated with a ``struct type``.
+- **Constant Folding**: If the alchemist sees ``2 + 2``, the context pass replaces the addition node with a single constant node ``4``.
+- **L-Value Analysis**: It determines if an expression can be assigned to (e.g., ``x = 10`` is valid, but ``5 = 10`` is not).
+
+5. The Final Alchemy: MIR Generation
+------------------------------------
+
+The last step is the most rewarding: turning the typed AST into executable MIR instructions. The ``gen_mir`` function walks the tree and emits code.
+
+- **Expression Lowering**: Nested AST expressions are flattened into a sequence of MIR instructions using temporary registers.
+- **Control Flow**: C's high-level constructs (``if``, ``while``, ``for``) are lowered into low-level MIR labels and jumps.
+- **Built-in Support**: C2MIR leverages the MIR core's built-in functions for complex operations like ``memcpy`` or ``long double`` arithmetic.
+
+6. Computational Complexity
 ---------------------------
 
 - **Time Complexity**:
