@@ -14,6 +14,7 @@ The Anatomy of a C JIT
    16_mir_architecture
    17_mir_context_modules
    18_mir_api
+   19_mir_implementation
    03_interpreter
    04_jit_pipeline
    10_modules_and_linking
@@ -24,6 +25,7 @@ The Anatomy of a C JIT
    09_embedding
    06_missing_links
    12_licensing
+   99_glossary
 
 .. toctree::
    :maxdepth: 2
