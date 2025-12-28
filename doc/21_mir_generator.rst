@@ -19,7 +19,7 @@ Before we dive in, a warning:
 
 The very top of ``mir-gen.c`` greets us with a battle plan—a diagram of the optimization pipeline.
 
-.. image:: _static/diagrams/pipeline.svg
+.. image:: _static/diagrams/pipeline
    :alt: MIR Optimization Pipeline
    :align: center
 
