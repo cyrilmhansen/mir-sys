@@ -52,9 +52,21 @@ BSS (Block Started by Symbol)
 Execution & Optimization
 ------------------------
 
-Interpreter
-    The engine that executes MIR code directly without compiling it to machine code. In this project, the interpreter is compiled directly into the heart of the core library to ensure execution capability even when JIT is unavailable.
-    *See:* :doc:`03_interpreter`, :doc:`19_mir_implementation` (Section 72).
+ICode (Internal Code)
+    A flattened, array-based representation of MIR instructions used by the interpreter for high-speed execution. It replaces the linked-list AST with dense value arrays.
+    *See:* :doc:`22_mir_interpreter` (Section 2).
+
+Direct Threaded Dispatch
+    An interpretation technique where each instruction handler ends with a direct jump to the next handler's address, bypassing the overhead of a central loop or switch statement.
+    *See:* :doc:`22_mir_interpreter` (Section 3).
+
+Shim
+    In the context of the interpreter, a tiny piece of machine code that acts as a bridge between the host's native ABI and the interpreter's internal execution model.
+    *See:* :doc:`22_mir_interpreter` (Section 6).
+
+FFI (Foreign Function Interface) Bridge
+    The mechanism that allows MIR code (running in the interpreter or JIT) to call native C functions and vice versa, handling the complex translation of data between the VM and the host ABI.
+    *See:* :doc:`22_mir_interpreter` (Section 5).
 
 Generator (``mir-gen``)
     The component that translates MIR IR into native machine code for the host architecture.
@@ -132,8 +144,16 @@ Spilling
     *See:* :doc:`04_jit_pipeline`.
 
 Machinize
-    The target-specific pass that transforms generic MIR instructions into forms that directly map to the host CPU's instruction set and ABI.
-    *See:* :doc:`04_jit_pipeline`.
+    The target-specific pass that transforms generic MIR instructions into forms that directly map to the host CPU's instruction set and ABI. This includes converting to 2-operand format and handling calling conventions.
+    *See:* :doc:`21_mir_generator` (Section 30).
+
+Pressure Relief
+    An optimization that moves instructions to reduce the peak number of simultaneously active variables, helping to avoid register spilling.
+    *See:* :doc:`21_mir_generator` (Section 18.5).
+
+Rebasing
+    The process of patching absolute memory addresses in generated machine code once the final destination of the code block is known.
+    *See:* :doc:`21_mir_generator` (Section 30.3).
 
 String Interning
     The process of storing only one copy of each distinct string (identifier) to save memory and allow fast integer-based comparisons.
