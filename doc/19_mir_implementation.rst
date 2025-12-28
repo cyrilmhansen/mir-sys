@@ -590,7 +590,59 @@ This function bridges the gap between the abstract MIR universe and the concrete
 
 **The Result:** When the generator sees a call to this function in this module, it doesn't need to ask the dynamic linker for help. It already has the hard-coded memory address of the C function to jump to. It is a hardline telephone directly to the hardware.
 
-**End of `mir.c` Deep Dive:**
+63. The Machine Code Foundry
+----------------------------
+
+We have crossed the threshold. This isn't abstract syntax anymore; this is **raw, executable memory**. The code here deals with the physical reality of the operating system's memory manager.
+
+63.1 ``_MIR_set_code``: The W^X Violation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Modern Operating Systems enforce a strict policy known as **W^X (Write XOR Execute)**. Memory can be writable or executable, but never both simultaneously (to prevent security exploits).
+But a JIT compiler *must* write code and then execute it.
+
+*   **The Dance:** ``_MIR_set_code`` performs a dangerous dance with the OS kernel.
+    1.  ``MIR_mem_protect(..., PROT_WRITE_EXEC)``: "Hey Kernel, look away for a second. I need to write here."
+    2.  ``memcpy``: The bytes are blasted into place.
+    3.  ``MIR_mem_protect(..., PROT_READ_EXEC)``: "Okay, I'm done. You can lock it down again."
+
+63.2 The Code Holder: ``get_last_code_holder``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can't just ``malloc`` executable memory. You need ``mmap`` (on Unix) or ``VirtualAlloc`` (on Windows), and these only work in page-sized chunks (usually 4KB). Requesting a fresh page for every 10-byte function would be wasteful.
+
+*   **The Strategy:** MIR allocates large chunks (``code_holder_t``).
+*   **The Allocation:** It fills them up linearly (``ch_ptr->free += code_len``).
+*   **The Expansion:** When a chunk is full, it allocates a new page-aligned block. This is a custom memory allocator specifically for machine code.
+
+63.3 The Cache Flush: ``_MIR_flush_code_cache``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+CPUs are fast because they cache instructions. But when we generate new code, it sits in the *Data Cache*, not the *Instruction Cache*. If we try to jump to it immediately, the CPU might execute stale garbage.
+
+*   **The Instruction:** ``__builtin___clear_cache`` (or OS specific equivalent) forces the CPU to invalidate its instruction cache for the given range. It screams at the processor: "FORGET WHAT YOU KNOW! RELOAD FROM RAM!"
+
+64. The Code Patcher: ``_MIR_update_code``
+------------------------------------------
+
+JIT compilation is rarely a "write once" affair. We often need to patch code after it's generated (e.g., resolving a forward jump label or linking a function call).
+
+This function allows surgical strikes on existing code. It takes a base address and a list of ``relocs`` (offset + value pairs) and patches the machine code in place, handling the memory protection dance automatically.
+
+**Adventure Status Check**
+
+We have completed our survey of the **Core (``mir.c``)**. We have seen the universe created, functions defined, data laid out, and finally, the memory management for the executable code itself.
+
+The foundation is rock solid.
+
+But a foundation is not a house. We have the *tools* to generate code, but we haven't seen *how* the decisions are made. How does ``ADD a, b, c`` actually become ``0x48 0x01 0xD8``? How do registers get assigned?
+
+The next leg of our journey takes us into the brain of the operation: **``mir-gen.c``**. This is where the Register Allocator lives. This is where the Control Flow Graph is built. This is where the abstract becomes concrete.
+
+Are you ready to enter the Generator?
+
+**End of `mir.c` Deep Dive.**
+
 
 
 We have reached the final stretch of our exploration into `mir/mir.c`. We've journeyed through the core data structures, the API, the serialization, and now the initial optimization stages. The IR is being refined, ready for the backend.
