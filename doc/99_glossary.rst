@@ -107,9 +107,21 @@ Thunk
 Internal Mechanics
 ------------------
 
-Basic Block Instruction (``bb_insn``)
-    A wrapper for ``MIR_insn_t`` that stores generator-specific metadata, such as liveness information and indices used for data-flow bitmaps.
-    *See:* :doc:`21_mir_generator` (Section 4 & 9).
+Backtracking
+    A parsing technique where the compiler speculatively attempts to match a grammar rule and "rewinds" its position if the match fails. In C2MIR, this is used to resolve C grammar ambiguities.
+    *See:* :doc:`08_c2mir` (Section 3).
+
+Lexer Hack
+    A well-known technique in C compiler design where the parser provides feedback to the lexer about typedef names, allowing the lexer to distinguish between general identifiers and type names.
+    *See:* :doc:`08_c2mir` (Section 3).
+
+Literal Pool
+    A dedicated region of memory within a machine code block used to store large constants (immediates) that are too big to fit inside a single CPU instruction.
+    *See:* :doc:`23_mir_backends` (Section 2.3).
+
+Blue Painting
+    A term from the C standard's macro expansion rules where a macro currently being expanded is marked as unavailable for further expansion to prevent infinite recursion.
+    *See:* :doc:`08_c2mir` (Section 2).
 
 Death Note (``dead_var_t``)
     A metadata record attached to an instruction identifying a register whose value is no longer needed after that point. Crucial for register reuse and liveness analysis.

@@ -1,0 +1,26 @@
+digraph C2MIR_Pipeline {
+    rankdir=LR;
+    node [shape=box, style="filled,rounded", fontname="Arial", fontsize=10, fillcolor="#f9f9f9", color="#333333"];
+    edge [color="#666666", penwidth=1.2];
+
+    CSource [shape=ellipse, fillcolor="#fff3e0", label="C Source Code"];
+    MIR_IR [shape=ellipse, fillcolor="#e1f5fe", label="MIR IR"];
+
+    subgraph cluster_c2mir {
+        label = "C2MIR (mir/c2mir/c2mir.c)";
+        style = dashed;
+        color = "#cccccc";
+
+        Lexer [label="Lexer / Preprocessor\n(Token Stream)", fillcolor="#e8f5e9"];
+        Parser [label="Parser\n(Recursive Descent)", fillcolor="#fff9c4"];
+        Context [label="Semantic Analysis\n(Symbol Tables)", fillcolor="#ffebee"];
+        Generator [label="MIR Generator\n(AST to IR)", fillcolor="#e1f5fe"];
+
+        Lexer -> Parser [label="Tokens"];
+        Parser -> Context [label="AST"];
+        Context -> Generator [label="Typed AST"];
+    }
+
+    CSource -> Lexer;
+    Generator -> MIR_IR;
+}
