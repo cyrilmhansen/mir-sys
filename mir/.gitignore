@@ -1,12 +1,26 @@
+# Build artifacts
 *.o
 *.d
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dll
+*.dylib
+*.pdb
+*.exe
+
+# Compile commands (clangd)
+compile_commands.json
+
+# Binaries
 /b2ctab
 /b2m
 /c2m
 /m2b
-*.so
-*.so.*
-*.a
 /mir-run
+
+# Build directories
 /build
 /.cache

@@ -1,4 +1,25 @@
-# doc/.gitignore
+# Sphinx / Python
 _build/
 __pycache__/
 *.pyc
+*.mo
+*.sp
+
+# Doxygen
+doxygen-html/
+xml/
+latex/
+
+# LaTeX / PDF generation artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+texsys.aux
+xelatex.log
+
+# Generated ReST files
+generated_diagrams.rst

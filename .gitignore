@@ -1,1 +1,20 @@
-target
+# Rust
+target/
+**/*.rs.bk
+
+# Editors & IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs & Temporary Files
+*.log
+tmp/
+temp/
+
+# Tool Outputs
+repomix-output.xml
+fix_doxygen_v*.sh
