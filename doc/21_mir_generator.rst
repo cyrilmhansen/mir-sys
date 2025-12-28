@@ -15,13 +15,22 @@ Before we dive in, a warning:
    This file is an implementation of a full-fledged backend compiler. Concepts like Register Allocation, Control Flow Graphs, SSA Form, and Data Flow Analysis are assumed knowledge here. The terrain is treacherous. Proceed with caution.
 
 1. The Strategy Room: Optimization Pipeline
---------------------------------------------------------------------------------
+-------------------------------------------
 
 The very top of ``mir-gen.c`` greets us with a battle plan—a diagram of the optimization pipeline.
+
+.. raw:: latex
+
+   \clearpage
 
 .. image:: _static/diagrams/pipeline.*
    :alt: MIR Optimization Pipeline
    :align: center
+   :width: 100%
+
+.. raw:: latex
+
+   \clearpage
 
 This isn't just a flowchart; it's a promise. It tells us exactly how MIR transforms from a loose collection of instructions into tight machine code.
 

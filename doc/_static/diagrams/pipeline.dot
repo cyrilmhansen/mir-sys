@@ -2,19 +2,21 @@ digraph MIR_Optimization_Pipeline {
     rankdir=TB;
     newrank=true;
     splines=ortho;
-    nodesep=0.4;
-    ranksep=0.4;
+    nodesep=0.8;
+    ranksep=1.0;
     
-    node [shape=box, style="filled,rounded", fontname="Arial", fontsize=10, fillcolor="#f9f9f9", color="#333333", width=1.4];
-    edge [color="#666666", penwidth=1.2];
+    /* Global node style: Wide and Tall for maximum visibility */
+    node [shape=box, style="filled,rounded", fontname="Arial", fontsize=16, fillcolor="#f9f9f9", color="#333333", width=4.0, height=1.2, fixedsize=false];
+    edge [color="#666666", penwidth=2.0, arrowsize=1.5];
 
     /* Terminals */
-    MIR [shape=ellipse, fillcolor="#e1f5fe", label="MIR IR", width=1.8];
-    MachineCode [shape=ellipse, fillcolor="#fff3e0", label="Native Machine Code", width=1.8];
+    MIR [shape=ellipse, fillcolor="#e1f5fe", label="MIR IR", width=4.0, height=1.5];
+    MachineCode [shape=ellipse, fillcolor="#fff3e0", label="Native Machine Code", width=4.0, height=1.5];
 
     /* FRONTEND */
     subgraph cluster_frontend {
         label = "Frontend / Core";
+        fontsize = 20;
         style = dashed;
         color = "#cccccc";
         Simplify [label="Simplify\n(Lowering MIR)", fillcolor="#e8f5e9", URL="19_mir_implementation.html#the-simplifier-s-toolbox-simplify-func"];
@@ -23,18 +25,20 @@ digraph MIR_Optimization_Pipeline {
     /* MIDDLE-END */
     subgraph cluster_middle_end {
         label = "Optimizer (Middle-End)";
+        fontsize = 20;
         style = dashed;
         color = "#cccccc";
         
-        /* Row 1: Setup - Vertical Transition to Row 2 */
+        /* Row 1: Setup */
         BuildCFG [label="Build CFG", URL="#the-architect-s-blueprint-build-func-cfg"];
         BuildSSA [label="Build SSA", URL="#the-single-truth-ssa-construction"];
         AddrTrans [label="Address\nTransformation", URL="#from-abstract-to-concrete-address-transformation"];
         BlockCloning [label="Block Cloning", URL="#path-specialization-basic-block-cloning"];
         
-        /* Row 2: SSA Opts - HORIZONTAL GROUP */
+        /* Row 2: SSA Opts - HORIZONTAL GROUP (WIDE) */
         subgraph cluster_ssa_opts {
             label = "SSA Optimizations (Horizontal Pipeline)";
+            fontsize = 18;
             fillcolor="#fafafa";
             style=filled;
             color="#bbbbbb";
@@ -60,12 +64,14 @@ digraph MIR_Optimization_Pipeline {
     /* BACKEND */
     subgraph cluster_backend {
         label = "Backend (Target-Specific)";
+        fontsize = 20;
         style = dashed;
         color = "#cccccc";
         
-        /* Row 4: Backend Pipeline - HORIZONTAL GROUP */
+        /* Row 4: Backend Pipeline - HORIZONTAL GROUP (WIDE) */
         subgraph cluster_target_gen {
             label = "Target Generation (Horizontal Pipeline)";
+            fontsize = 18;
             fillcolor="#fffde7";
             style=filled;
             color="#d4d4d4";
