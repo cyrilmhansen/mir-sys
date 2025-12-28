@@ -31,7 +31,7 @@ This is the most critical phase for **ABI (Application Binary Interface)** compl
 *   **The Signedness Quirk**: A unique law of RISC-V is that 32-bit values in registers must be **sign-extended** even if they are logically unsigned. ``get_ext_code`` ensures that an unsigned 32-bit MIR type is passed as a signed 32-bit value to satisfy the ABI.
 
 1.3 Complex Operations: Built-in Shims (The Outsourcing)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some operations are too complex for a simple RISC-V instruction (e.g., ``long double`` math or block moves). Instead of emitting hundreds of raw instructions, MIR "outsources" the work to C.
 
@@ -39,20 +39,11 @@ Some operations are too complex for a simple RISC-V instruction (e.g., ``long do
 *   **``get_builtin``**: This function identifies complex MIR opcodes like ``MIR_LDADD`` (Long Double Add).
     *   **The Hook**: It creates a prototype for a C helper function (e.g., ``mir_ldadd``).
     *   **The Call**: It replaces the ``LDADD`` opcode with a standard ``CALL`` to that C helper.
-    *   This keeps the machine code generator simple while supporting the full range of C types.
-
-1.4 The Instruction Forge: ``target_translate`` (The Smithy)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This is the final step where MIR opcodes are hammered into raw machine bytes.
-
-*   **Instruction Selection**: A ``MIR_ADD`` might become an ``ADD`` (reg-reg) or an ``ADDI`` (reg-imm) instruction depending on its operands.
-*   **Branch Relaxing**: RISC-V branch instructions have a limited range. If a jump is too far, the backend must "relax" it—replacing a simple branch with a jump-and-link (``JAL``) instruction that can reach the entire address space.
 
 .. _gen_stack_frame:
 
-1.5 Advanced Machinization: The Stack Frame and Prologue
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1.4 Advanced Machinization: The Stack Frame and Prologue
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Before a function can execute, it must secure its "Living Quarters" in memory. ``target_make_prolog_epilog`` is the **Civil Engineer** that builds the stack frame.
 
@@ -64,170 +55,106 @@ Before a function can execute, it must secure its "Living Quarters" in memory. `
 
 .. _gen_pattern_matcher:
 
-1.6 The Pattern Matcher: Instruction Selection
+1.5 The Pattern Matcher: Instruction Selection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The heart of ``target_translate`` is a declarative **Pattern Matcher**. Instead of writing thousands of ``if`` statements, the backend uses a `struct pattern` table.
 
-*   **The Grammar**: Patterns use a shorthand:
-    *   ``"r r r"``: Three registers (e.g., ``ADD rd, rs1, rs2``).
-    *   ``"r r i"``: Two registers and a 12-bit immediate (e.g., ``ADDI rd, rs1, imm``).
-    *   ``"C"``: A "Compressed" register (available in the RV64C extension).
+*   **The Grammar**: Patterns use a shorthand (e.g., ``"r r r"`` for three registers, ``"r r i"`` for two registers and a 12-bit immediate).
 *   **The Replacement**: Each pattern has a machine code template (e.g., ``"O33 F0 rd0 rs1 rS2"``). The translator fills in the holes (``rd0``, ``rs1``) with the actual register numbers from the MIR instruction.
 
 .. _gen_branch_relax:
 
-1.7 The Arcane Art: Branch Relaxation and Patching
+1.6 The Arcane Art: Branch Relaxation and Patching
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 RISC-V instructions are 32 bits wide, and their branch offsets are limited. A standard branch (``BEQ``) can only jump +/- 4KB.
 
-*   **The Problem**: What happens if your function is 100KB long and you need to jump from the start to the end?
-*   **The Arcane Solution**: In ``target_translate``, MIR performs **Branch Relaxation**. 
+*   **The Problem**: Large functions may need to jump further than the hardware allows.
+*   **The Arcane Solution**: In ``target_translate``, MIR performs **Branch Relaxation**.
     *   If an offset fits in 12 bits, it emits a single ``BEQ``.
-    *   If it doesn't, it "relaxes" the instruction into a complex sequence:
-        .. code-block:: text
-           BNE next;  # Inverse the condition
-           JAL target; # Jump-and-Link (20-bit offset, +/- 1MB)
-           next:
+    *   If it doesn't, it "relaxes" the instruction into a complex sequence (e.g., inverting the condition and using a 20-bit ``JAL``).
     *   If even 1MB isn't enough, it uses an ``AUIPC`` + ``JALR`` sequence to reach the entire 64-bit address space.
 
 .. note::
    **Historical Lore: The Fixed-Width Prison**
    
-   In the early days of RISC (like MIPS and early Alpha), compilers had to be extremely clever because every instruction *had* to be exactly 32 bits. This created the "Branch Distance" problem. Modern architectures like RISC-V solve this by allowing the compiler to "relax" a single instruction into a multi-instruction trampoline. MIR automates this tedious process, ensuring that the programmer never has to worry about the physical size of their code.
+   In the early days of RISC (like MIPS and early Alpha), compilers had to be extremely clever because every instruction *had* to be exactly 32 bits. This created the "Branch Distance" problem. Modern architectures like RISC-V solve this by allowing the compiler to "relax" a single instruction into a multi-instruction trampoline.
 
-.. _gen_x86_deep:
+2. The Elite Guard: ARM64 (AArch64)
+------------------------------------
 
-5. Deep Dive: The Veteran's CISC Struggle (x86_64)
--------------------------------------------------
+ARM64 is the dominant architecture of the mobile world. Its implementation in ``mir-gen-aarch64.c`` reflects a modern, efficient RISC design.
 
-While RISC-V is a clean slate, x86_64 is a city built on top of ancient ruins. The implementation in ``mir-gen-x86_64.c`` is a masterpiece of adaptation.
+2.1 The Register Wealth
+~~~~~~~~~~~~~~~~~~~~~~~
 
-5.1 The Variable-Length Maze
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ARM64 provides 31 general-purpose registers and a dedicated **Zero Register** (``ZR``). It also uses a **Link Register** (``LR``) for return addresses, which saves memory traffic for "leaf" functions.
 
-Unlike RISC-V's 4-byte grid, x86 instructions can be anywhere from 1 to 15 bytes.
+2.2 Apple Silicon vs. The World
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*   **Instruction Density**: A ``RET`` is 1 byte (``0xC3``). A complex move with a 64-bit immediate and a 4-byte displacement can be 10+ bytes.
-*   **Time Complexity**: Finding the length of an x86 instruction is :math:`O(L)` where :math:`L` is the length in bytes. Since $L$ is capped at 15, it remains constant-time, but the logic is far more complex than RISC-V's bit-shifting.
+The ARM64 backend must handle the divide between the **Standard ABI** and the **Apple ABI**.
+*   **Variadic Arguments**: Apple passes variadics on the stack; Linux uses a complex register-save area. MIR's backend handles this with extensive conditional compilation.
 
-5.2 The 2-Operand Conversion (Machinization)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+3. The Veteran: x86_64 (CISC)
+----------------------------
 
-The x86 backend must perform a high-complexity pass during machinize to handle the 3-to-2 operand conversion.
+The x86_64 backend (``mir-gen-x86_64.c``) is a masterpiece of adaptation, turning MIR's 3-operand RISC IR into idiosyncratic CISC instructions.
 
-*   **Memory Complexity**: This pass may double the number of instructions in the IR buffer (:math:`O(2N)`).
-*   **The Lore of the Accumulator**: Historically, x86 was an "Accumulator" architecture (everything happened in ``EAX``). Modern x86_64 allows most registers to act as accumulators, but the "Result = Input1 op Input2" restriction persists. MIR's backend hides this 40-year-old limitation from the user.
+3.1 The Arcane Puzzle: SIB Byte Encoding
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-5.3 The Red Zone and the Stack
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The most arcane part of the x86 backend is encoding the **SIB (Scale-Index-Base)** byte.
+*   **The Trap**: Certain registers (like ``RSP`` and ``RBP``) have special meanings in the ModRM/SIB bytes.
+*   **The Workaround**: ``setup_mem`` contains highly specific logic to detect these hardware quirks and inject zero-displacements to satisfy the silicon logic.
 
-x86_64 (specifically the System V ABI used on Linux) has a feature called the **Red Zone**.
+.. note::
+   **Historical Lore: The 1978 Ghost**
+   
+   The ModRM byte was designed for the Intel 8086 in 1978. Every subsequent expansion (386, x86_64) had to work around its 8-register legacy. MIR's backend is effectively communicating with logic designed over 45 years ago.
 
-*   **The Safe Haven**: Functions can use 128 bytes of memory *below* the stack pointer (``RSP``) without allocating it.
-*   **The Benefit**: For small leaf functions, MIR can skip the ``SUB RSP, size`` instruction entirely, resulting in extremely fast, "prologue-less" code execution.
+4. The Endianness Challenge
+---------------------------
+
+MIR achieves **Architecture Independence** by treating all registers as 64-bit containers.
+
+*   **Internal Compass**: ``_MIR_addr_offset`` dynamically detects if the host is Little Endian or Big Endian.
+*   **The Offset**: On Big Endian systems, it provides the necessary displacement (e.g., 7 bytes for an ``I8``) so that byte-level operations target the correct "lane" in the 64-bit register.
+
+.. _gen_complexity:
+
+5. Computational Complexity
+---------------------------
+
+MIR's backend is designed for high-performance, linear-time generation.
+
+5.1 Time Complexity
+~~~~~~~~~~~~~~~~~~~
+
+*   **Machinization**: :math:`O(N)` where :math:`N` is the number of instructions.
+*   **Translation**: :math:`O(N \times P)` where :math:`P` is the (constant) number of patterns per opcode.
+*   **Branch Relaxation**: :math:`O(L)` where :math:`L` is the number of labels.
+*   **Rebasing**: :math:`O(R)` where :math:`R` is the number of relocations.
+
+5.2 Memory Complexity
+~~~~~~~~~~~~~~~~~~~~~
+
+*   **Code Buffer**: :math:`O(N)` bytes.
+*   **Relocation Table**: :math:`O(J)` where :math:`J` is the number of jumps.
 
 .. _gen_relocation_lore:
 
 6. The Relocation Lore: Patching the Universe
 ---------------------------------------------
 
-Both the Generator and the Interpreter must eventually deal with **Relocations**.
-
-*   **The Absolute Truth**: When you call a function like ``printf``, the JIT doesn't know its final address until the code is actually placed in memory.
-*   **The Relocation Table**: MIR maintains a list of "Holes" in the machine code.
-*   **Complexity**: ``target_rebase`` is :math:`O(R)` where :math:`R` is the number of relocations. For each entry, it calculates the final destination and "patches" the bytes.
+MIR performs micro-second linking inside process memory.
+*   **The Table**: It tracks "Holes" in the machine code.
+*   **The Rebase**: Once the code's final address is known, ``target_rebase`` patches these holes.
 
 .. note::
    **Historical Lore: The Linker's Burden**
    
-   In the 1970s, "Linkers" were separate, heavy programs that ran for minutes to resolve these addresses. MIR performs this same "Linking" process in microseconds, right inside your process memory. It is a testament to how far Moore's Law and algorithmic efficiency have come.
+   In the 1970s, Linkers were separate programs that took minutes to run. MIR performs the same task in microseconds, allowing for the extreme "Lazy" compilation modes that give the project its speed.
 
-**Summary**: Backends are the bridge between the logical and the physical. Whether it's navigating the fixed-width constraints of RISC-V or the ancient operand rules of x86, MIR provides a unified, high-performance interface to the hardware.
-
-
-
-2. The Elite Guard: ARM64 (AArch64)
-------------------------------------
-
-ARM64 is the dominant architecture of the mobile world and increasingly the data center. Its implementation in ``mir-gen-aarch64.c`` reflects a modern, efficient RISC design with a few "Elite" twists.
-
-2.1 The Register Wealth
-~~~~~~~~~~~~~~~~~~~~~~~
-
-ARM64 provides a generous 31 general-purpose 64-bit registers (``R0-R30``).
-
-*   **Zero Register**: ``R31`` is the "Zero Register" (``ZR``). It always returns 0 when read and discards data when written. MIR uses this to simplify many logic operations.
-*   **The Link Register**: ``R30`` (``LR``) holds the return address for function calls. Unlike x86, which pushes the return address to the stack, ARM64 keeps it in a register, saving a memory access for "leaf" functions (functions that don't call other functions).
-
-2.2 Apple Silicon vs. The World
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ARM64 backend must navigate a major cultural divide: **Standard ARM64 ABI** vs. **Apple macOS/iOS ABI**.
-
-*   **Variadic Arguments**: On standard Linux/Android ARM64, variadic arguments are passed in a complex structure that includes both integer and floating-point register save areas. On Apple platforms, variadic arguments are **always passed on the stack**.
-*   **Stack Alignment**: Apple is stricter about the 16-byte stack alignment. ``mir-gen-aarch64.c`` contains numerous ``#if defined(__APPLE__)`` blocks to handle these bureaucratic differences.
-
-2.3 Immediate Constraints
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-ARM64 instructions are 32 bits wide. This means you cannot fit a 64-bit constant inside a single instruction.
-
-*   **The Solution**: If a constant is small, it uses a simple ``MOV``. If it's large, the backend must use a sequence of ``MOVK`` (Move Keep) instructions to build the value 16 bits at a time, or load it from a **Literal Pool** (a small data area embedded in the code).
-
-3. The Veteran: x86_64 (CISC)
-----------------------------
-
-The x86_64 backend (``mir-gen-x86_64.c``) is the most complex, as it must adapt MIR's clean RISC-like IR to the dense, idiosyncratic world of CISC.
-
-3.1 The 2-Operand Straitjacket
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-MIR instructions are 3-operand (``A = B + C``). Most x86 instructions are 2-operand (``A = A + B``).
-
-*   **The Injection**: The x86 backend must frequently inject an extra ``MOV`` to preserve the inputs:
-    .. code-block:: assembly
-       MOV RAX, RBX  ; A = B
-       ADD RAX, RCX  ; A = A + C
-*   **The Optimization**: If the Register Allocator was smart enough to assign ``A`` and ``B`` to the same hardware register, the backend identifies the ``MOV RAX, RAX`` and deletes it.
-
-3.2 Complex Addressing (SIB)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-x86 can calculate complex addresses in a single instruction: ``[base + index * scale + disp]``.
-
-*   **``target_insn_ok_p``**: This function is the "Inspector." It looks at a MIR memory operand and decides if it fits into x86's addressing hardware. If the displacement is too large or the scale is not 1, 2, 4, or 8, the inspector rejects it, forcing the simplifier to break the math down into multiple steps.
-
-4. The Endianness Challenge
----------------------------
-
-MIR's core philosophy is **Architecture Independence**. A major part of this is handling **Endianness**—the order in which bytes are stored in memory.
-
-4.1 The 64-bit Container
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-Internally, MIR treats all registers as 64-bit containers. When you load a single byte (``I8``) into a register, it occupies a specific "lane" in that 64-bit slot.
-
-*   **Little Endian (x86, ARM64, RISC-V)**: The byte lives at the **lowest** address (offset 0).
-*   **Big Endian (s390x, PowerPC)**: The byte lives at the **highest** address (offset 7).
-
-4.2 The Reality Anchor: ``_MIR_addr_offset``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This function is MIR's "Internal Compass." It performs a runtime check:
-.. code-block:: c
-   int v = 1; if (*(char *)&v != 0) // I am Little Endian!
-
-*   **The Adjustment**: If the host is Big Endian, ``_MIR_addr_offset`` returns the necessary displacement (7 for ``I8``, 6 for ``I16``, 4 for ``I32``) to ensure that code generated for a byte load actually points to the correct byte in the 64-bit register.
-
-4.3 Porting to a New Endianness
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-To run MIR on a **Big Endian ARM64** system, the developer would:
-1.  Verify the ``_MIR_addr_offset`` logic in the core.
-2.  Ensure that the ``target_translate`` phase in the ARM64 backend emits instructions in the correct byte order (ARM64 instructions themselves are almost always Little Endian, even when data is Big Endian!).
-3.  Adjust the aggregate passing logic in the ABI handler, as many BE systems reverse the alignment of small structs within a register.
-
-**Summary**: By abstracting away these physical "quirks" into target-specific files while maintaining a unified analytical core, MIR achieves the rare feat of being both highly portable and extremely fast.
-
+**Summary**: Backends are the bridge between the logical and the physical. MIR provides a unified interface to the hardware while respecting the deep historical legacies of every supported architecture.
