@@ -1187,6 +1187,70 @@ The Core is complete. It is a self-contained universe that can represent, manipu
 The machine code itself. We have built the *idea* of the program. Now we must translate that idea into the specific dialect of the processor (x86_64, ARM64, etc.). That happens in **``mir-gen.c``**. That is where the rubber meets the road.
 
 
+55. The Simplifier's Core: ``simplify_func``
+--------------------------------------------
+
+We have crossed the threshold into the realm of **Optimization**. The code you see here (`val_t`, `simplify_ctx`, `vn_add_val`) is the engine of a technique known as **Value Numbering** (specifically, Local Value Numbering or LVN).
+
+*   **The Idea:** If I calculate `a + b` and store it in `x`, and then I calculate `a + b` again later, I shouldn't re-do the math. I should just reuse `x`.
+*   **The Mechanism:**
+    *   ``val_t``: This struct represents a "computation". It holds the opcode (`ADD`), the type (`I64`), and the operands (`op1`, `op2`).
+    *   ``val_hash`` / ``val_eq``: These allow us to store computations in a hash table.
+    *   ``vn_add_val``: This is the broker. You give it a computation (`a + b`).
+        *   If it's already in the table, it returns the *existing* temporary register holding the result.
+        *   If it's new, it creates a *new* temporary register, records the computation, and returns the new register.
+
+This simple mechanism automatically eliminates redundant calculations (CSE - Common Subexpression Elimination) within a basic block.
+
+56. The Simplifier's Core: ``simplify_op``
+------------------------------------------
+
+This function is the **Standardizer**. It walks through every operand of every instruction and asks: "Are you allowed here?"
+
+*   **Immediate-to-Immediate Moves:** If you try to move a constant `10` into another constant `20`, it asserts failure. You can't change the laws of physics.
+*   **Memory-to-Memory Moves:** As mentioned before, if it sees `MOV mem, mem`, it creates a temporary register to bridge the gap.
+*   **Complex Addressing:** It decomposes complex memory operands (`base + index * scale + disp`) into simpler arithmetic instructions if the target architecture or the specific instruction doesn't support them natively in that slot.
+*   **String Literals:** If it sees a string literal operand (`MIR_OP_STR`), it:
+    1.  Creates a new global string data item (`MIR_new_string_data`).
+    2.  Replaces the operand with a **Reference** to that global (`MIR_new_ref_op`).
+This moves the string data out of the code stream and into the data segment, where it belongs.
+
+57. The Return Fixer: ``make_one_ret``
+-------------------------------------
+
+Functions in MIR can have multiple exit points (`RET`). But many physical machine ABIs and internal analyses prefer a **Single Point of Exit**.
+
+*   **The Transformation:**
+    1.  It creates a new label: `L_return`.
+    2.  It finds every `RET` instruction in the function.
+    3.  It replaces the `RET val` with `MOV ret_reg, val; JMP L_return`.
+    4.  It places the single, true `RET ret_reg` instruction at `L_return`.
+
+This canonicalization simplifies the work for the register allocator later, as all return values converge to a single location (liveness analysis loves this).
+
+58. The Label Sweeper: ``remove_unused_and_enumerate_labels``
+-------------------------------------------------------------
+
+Optimization often leaves debris. If you delete a `JMP L1`, then `L1` might become an orphan—a label that no one jumps to.
+
+*   **The Mark Phase:** `mark_used_label` sets a bit in a bitmap for every label referenced by a branch.
+*   **The Sweep Phase:** The function iterates through all labels. If a label's bit is 0, it is deleted.
+*   **Renumbering:** It reassigns sequential IDs (`new_label_num++`) to the survivors. This keeps the label space dense and clean, which is nice for bitsets and arrays indexed by label ID.
+
+**Summary:** We are seeing the "middle-end" of the compiler in action. It is scrubbing, polishing, and restructuring the code. It eliminates redundancy, enforces structural invariants (like single-exit), and prepares the IR for the final translation to machine code. The "adventurous" part here is that we are modifying the very fabric of the program while analyzing it—a dangerous but powerful operation.
+
+**End of `mir.c` Deep Dive:**
+
+We have reached the final stretch of our exploration into `mir/mir.c`. We've journeyed through the core data structures, the API, the serialization, and now the initial optimization stages. The IR is being refined, stripped down to its essential form, ready for the backend.
+
+**Next Steps:**
+With the core IR and its initial simplification understood, we are poised to delve into the heart of code generation or interpretation. The path splits towards:
+*   **`mir-gen.c`**: The Generator, where MIR is translated into concrete machine code for a specific architecture.
+*   **`mir-interp.c`**: The Interpreter, which directly executes MIR instructions.
+
+The foundation is robust, the tools are sharp, and the optimization engines are revving. The journey continues!
+
+
 
 
 
