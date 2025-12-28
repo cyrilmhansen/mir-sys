@@ -55,6 +55,13 @@ How the interpreter jumps from one instruction to the next determines its fundam
     *   **The Labels**: Every instruction handler starts with a label (e.g., ``L_MIR_ADD:``).
     *   **The Jump**: Instead of returning to a central loop, each handler ends with a jump directly to the address of the *next* instruction's handler. It's like a relay race where the baton is never dropped.
 
+.. note::
+   **Compiler Lore: The Branch Predictor's Nightmare**
+   
+   In a standard ``switch`` loop, there is one single "indirect jump" at the end of the loop that targets every possible handler. This confuses the CPU's **Branch Predictor**, as it can't guess which instruction is coming next.
+   
+   In **Direct Threaded Dispatch**, every handler has its own jump. The CPU learns the patterns *specific to your code*. If your virtual program often follows an ``ADD`` with a ``STORE``, the CPU hardware will eventually predict that jump perfectly, resulting in a significant speed boost without a single line of assembly.
+
 3.2 Acting Out the Instructions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -119,6 +126,13 @@ When a MIR function is called in the interpreter, it creates a new **Stack Frame
 *   **The Layout**: The ``bp`` array is sized to hold all the registers (``nregs``) defined in the function's descriptor.
 *   **Safety Zone**: A few extra slots are reserved at the beginning of the frame for internal use, such as storing variadic argument pointers or handling ``setjmp``.
 
+.. note::
+   **Compiler Lore: The Magic of ``alloca``**
+   
+   Most VMs manage their own heap for stack frames. MIR is bolder: it uses the host's **physical stack** via ``alloca``. 
+   
+   This has a massive advantage: **Locality**. By keeping the virtual registers on the real stack, they are highly likely to stay in the CPU's **L1 Cache**. However, it means the interpreter's recursion depth is tied to the host's stack size. It's a high-stakes bet on performance over infinite recursion.
+
 5.2 The FFI Bridge: ``get_ff_interface``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -127,6 +141,13 @@ Calling a native C function (like ``printf``) from the interpreter requires a "F
 *   **The Problem**: The interpreter stores values in a unified ``MIR_val_t`` array, but C functions expect values in specific hardware registers or stack locations according to the host's ABI.
 *   **The Solution**: ``get_ff_interface`` uses a target-specific assembly shim (``_MIR_get_ff_call``) to perform the transformation. It takes the interpreter's values, packs them into the correct CPU registers, and jumps to the native code.
 *   **The Cache**: Because creating these shims is expensive, the interpreter maintains an ``ff_interface_tab`` (a hash table) to reuse them for identical function signatures.
+
+.. note::
+   **Interpreter Lore: The Tower of ABI**
+   
+   There is no such thing as "The C Language" at the machine level. There are only **ABIs** (Application Binary Interfaces). 
+   
+   An ``int`` might be passed in ``RDI`` on Linux but on the stack on another system. Floating point values might use the same registers as integers or a completely separate set. The FFI bridge is MIR's **Universal Translator**. It must know the "Bureaucracy" of every supported system to ensure that a virtual MIR value arrives safely in the hands of a native C function.
 
 5.3 The ``setjmp`` Special Case
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
