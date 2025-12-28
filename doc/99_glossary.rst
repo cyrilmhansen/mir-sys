@@ -140,4 +140,20 @@ Scan/Parse
 
 Binary IO
     The serialization format for saving compiled MIR modules to disk for later loading.
-    *See:* :doc:`19_mir_implementation` (Section 50).
+    *See:* :doc:`19_mir_implementation` (Section 50 & 65-66).
+
+Serialization
+    The process of converting internal data structures (like modules and instructions) into a linear stream of bytes for storage or transmission.
+    *See:* :doc:`19_mir_implementation` (Section 65).
+
+W^X (Write XOR Execute)
+    A security policy that prevents memory from being simultaneously writable and executable. MIR navigates this during code generation by toggling permissions.
+    *See:* :doc:`19_mir_implementation` (Section 63).
+
+Cache Flush
+    The operation of invalidating the CPU's instruction cache to ensure that newly generated machine code is correctly loaded from memory.
+    *See:* :doc:`19_mir_implementation` (Section 63).
+
+Patching
+    The process of modifying generated machine code in place, often used to resolve jump targets or link function calls after the initial code emission.
+    *See:* :doc:`19_mir_implementation` (Section 64).
