@@ -54,11 +54,23 @@ Interpreter
 
 Generator (``mir-gen``)
     The component that translates MIR IR into native machine code for the host architecture.
-    *See:* :doc:`04_jit_pipeline`.
+    *See:* :doc:`04_jit_pipeline`, :doc:`19_mir_implementation` (Section 2).
 
 Simplification
     A transformation pass that canonicalizes MIR code (e.g., splitting memory-to-memory moves) to make it suitable for the generator.
-    *See:* :doc:`19_mir_implementation` (Section 38 & 52).
+    *See:* :doc:`19_mir_implementation` (Section 38 & 52), :doc:`20_mir_optimizations`.
+
+CFG (Control Flow Graph)
+    A representation of all paths that might be traversed through a program during its execution. In MIR, the CFG consists of Basic Blocks connected by edges.
+    *See:* :doc:`04_jit_pipeline`.
+
+SSA (Single Static Assignment)
+    An intermediate form where every variable is assigned exactly once. This form simplifies many optimizations by making data flow explicit.
+    *See:* :doc:`04_jit_pipeline`.
+
+Register Allocation (RA)
+    The process of assigning virtual MIR registers to a limited number of physical CPU registers. MIR uses a priority-based linear scan allocator.
+    *See:* :doc:`04_jit_pipeline`.
 
 Linking (``MIR_link``)
     The process of resolving symbolic references (imports/exports) between modules and the host environment.
@@ -70,6 +82,30 @@ Thunk
 
 Internal Mechanics
 ------------------
+
+Basic Block (BB)
+    A straight-line code sequence with no branches in except to the entry and no branches out except at the exit.
+    *See:* :doc:`04_jit_pipeline`.
+
+Dominators
+    A block A "dominates" block B if every path from the start to B must go through A. Used for loop detection and code motion.
+    *See:* :doc:`04_jit_pipeline`.
+
+Phi Function (``PHI``)
+    A special instruction used in SSA form to merge values from different control flow paths.
+    *See:* :doc:`02_the_ir`, :doc:`04_jit_pipeline`.
+
+Liveness Analysis
+    The process of determining which variables are "alive" (needed for future use) at each point in the program. This is critical for register allocation.
+    *See:* :doc:`04_jit_pipeline`.
+
+Spilling
+    The act of moving a variable from a register to a memory slot (on the stack) when the number of active variables exceeds the available physical registers.
+    *See:* :doc:`04_jit_pipeline`.
+
+Machinize
+    The target-specific pass that transforms generic MIR instructions into forms that directly map to the host CPU's instruction set and ABI.
+    *See:* :doc:`04_jit_pipeline`.
 
 String Interning
     The process of storing only one copy of each distinct string (identifier) to save memory and allow fast integer-based comparisons.
