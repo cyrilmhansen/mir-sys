@@ -17,6 +17,7 @@ The Anatomy of a C JIT
    19_mir_implementation
    20_mir_optimizations
    21_mir_generator
+   23_mir_backends
    22_mir_interpreter
    03_interpreter
    04_jit_pipeline

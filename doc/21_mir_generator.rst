@@ -172,6 +172,8 @@ Before we dive into the internal algorithms, we must look at the controls availa
     *   **``MIR_set_lazy_bb_gen_interface``**: The extreme lazy mode. Compile only the entry basic block, then compile other blocks as they are reached (Basic Block Versioning).
 *   **``MIR_gen``**: The main entry point. It takes a MIR function item and returns a raw pointer to the generated machine code.
 
+.. _gen_data_flow:
+
 13. The River of Logic: Data Flow Solver (``solve_dataflow``)
 -------------------------------------------------------------
 
@@ -180,6 +182,8 @@ How do we know if a variable is "alive" at a certain point? We use a **Data Flow
 *   **The Worklist**: This function uses a "Worklist Algorithm." It's like a rumor spreading through a crowd.
 *   **The Propagation**: If a variable is needed at the end of Block B, and Block A jumps to B, then the variable is also needed at the end of Block A.
 *   **The Fixpoint**: The solver keeps iterating, passing information forward or backward along the edges, until the "rumors" stop changing. This is called reaching a **Fixpoint**. Once the state is stable, the compiler has a perfect map of variable lifetimes.
+
+.. _gen_ssa:
 
 14. The Single Truth: SSA Construction
 --------------------------------------
@@ -217,10 +221,14 @@ SSA is powerful because it allows the compiler to instantly answer the question:
 *   **The Linked List:** Every output operand of an instruction (``MIR_op_t.data``) points to a linked list of these edges.
 *   **The Benefit:** When an instruction is deleted or changed, the compiler can walk this list and update all the "customers" of that value instantly. This is the foundation for high-speed optimizations like Dead Code Elimination.
 
+.. _gen_adv_opts:
+
 15. Refining the World: Advanced Optimizations
 -----------------------------------------------
 
 Once the CFG and basic SSA form are established, the generator performs a series of complex transformations to maximize performance and prepare for machine code emission.
+
+.. _gen_block_cloning:
 
 15.1 Path Specialization: Basic Block Cloning (``clone_bbs``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -231,12 +239,14 @@ Sometimes, a single block of code is a bottleneck because it's shared by multipl
 *   **The Limit:** It uses a growth factor to prevent the code size from exploding.
 
 15.2 The Identity Crisis: Register Renaming
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In SSA form, variables are renamed to ensure unique assignments.
 
 *   **``rename_regs``**: This function walks the CFG and assigns new unique IDs to registers (e.g., ``%r1@1``, ``%r1@2``).
 *   **Tied Registers:** It respects "tied" registers—variables that must live in specific hardware registers—ensuring that the renaming process doesn't break ABI requirements.
+
+.. _gen_addr_trans:
 
 15.3 From Abstract to Concrete: Address Transformation (``transform_addrs``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -248,6 +258,8 @@ High-level MIR allows you to take the address of a register (``ADDR %r1``). Howe
     *   If the address is really needed, it **demotes** the register to a memory slot on the stack.
     *   If the address usage can be eliminated (e.g., it's only used for a simple load/store), it **promotes** the memory back to a register.
 
+.. _gen_conv_ssa:
+
 15.4 The Final Handover: Conventional SSA (``make_conventional_ssa``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -255,10 +267,14 @@ Standard SSA form is great for analysis, but hard to turn into machine code beca
 
 *   **The Solution:** ``make_conventional_ssa`` translates PHI nodes into concrete ``MOV`` instructions at the ends of the predecessor blocks. This "destroys" the pure SSA form but leaves the code in a state that the Register Allocator can process.
 
+.. _gen_classic_opts:
+
 16. Polishing the Metal: Classic Optimizations
 -----------------------------------------------
 
 With the code in its canonical SSA form, the generator unleashes a suite of classic compiler optimizations. These passes turn high-level logic into streamlined machine operations.
+
+.. _gen_mul_div:
 
 16.1 Multiplication to Shifts (``transform_mul_div``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -268,16 +284,20 @@ Multiplication and division are expensive instructions on almost every CPU.
 *   **The Math:** ``x * 8`` is mathematically equivalent to ``x << 3``. ``x / 4`` is equivalent to ``x >> 2``.
 *   **The Optimization:** ``transform_mul_div`` scans for multiplications or divisions by powers of two. It silently replaces the "heavy" instruction with a "light" shift instruction. This is a classic "strength reduction" pass.
 
+.. _gen_copy_prop:
+
 16.2 The Vanishing Act: Copy Propagation (``copy_prop``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A lot of code consists of simply moving data from one register to another (``MOV %r2, %r1``).
 
 *   **The Redundancy:** If the program calculates ``x = a + b`` and then says ``y = x``, any future use of ``y`` can just use ``x`` directly.
 *   **The Clean-up:** ``copy_prop`` identifies these chains. It bypasses the middleman (``y``) and rewrites subsequent instructions to use the original source (``x``). This frequently makes the original ``MOV`` instruction "dead," allowing it to be deleted entirely.
 
+.. _gen_alias:
+
 16.3 Memory Insight: Alias Analysis (``may_mem_alias_p``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Optimizing memory access is dangerous. If you have two pointers, ``p1`` and ``p2``, can you safely reorder a store to ``*p1`` and a load from ``*p2``?
 
@@ -288,8 +308,10 @@ Optimizing memory access is dangerous. If you have two pointers, ``p1`` and ``p2
 
 This logic allows the optimizer to safely eliminate redundant loads and reorder memory operations to hide latency.
 
+.. _gen_dom:
+
 16.4 Knowing Your Place: Dominance Calculation (``calculate_dominators``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To perform global optimizations (across multiple blocks), the compiler must know the structure of the CFG.
 
@@ -297,6 +319,8 @@ To perform global optimizations (across multiple blocks), the compiler must know
     *   **Loop Invariant Code Motion (LICM)**: Moving constant math out of loops.
     *   **Global Value Numbering (GVN)**: Recognizing redundant math across different branches.
     *   **SSA Construction**: Identifying where values from different paths merge.
+
+.. _gen_gvn:
 
 17. The Grand Library: Global Value Numbering (GVN)
 --------------------------------------------------
@@ -312,7 +336,7 @@ Every unique computation in the function is assigned a "Value Number."
 *   **The Lookup:** Before emitting an instruction, the generator checks the ``expr_tab``. If the same math has already been done on an available path, the result is reused.
 
 17.2 Memory Clairvoyance: ``calculate_memory_availability``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 One of GVN's most powerful tricks is **Redundant Load Elimination**.
 
@@ -320,7 +344,7 @@ One of GVN's most powerful tricks is **Redundant Load Elimination**.
 *   **The Analysis:** ``calculate_memory_availability`` performs a data flow pass to track which memory locations are "available" (loaded and unmodified) at every point in the CFG. It uses Alias Analysis to know if a store to ``*q`` might have invalidated the load from ``*p``.
 
 17.3 The Mental Math: Constant Propagation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Why wait for the CPU to add ``2 + 2``?
 
@@ -331,8 +355,10 @@ Why wait for the CPU to add ``2 + 2``?
 
 The generator is smart enough to know that ``a + b`` is the same as ``b + a``. It canonicalizes the order of operands before hashing them, ensuring that simple reordering doesn't hide redundant work from the optimizer.
 
+.. _gen_pruning:
+
 18. The Final Polish: Pruning and Inlining
-------------------------------------------
+-------------------------------------------
 
 The generator's journey through the "middle-end" concludes with a series of high-impact transformations that clean up the debris left by previous passes and bridge the gap to the physical machine.
 
@@ -360,6 +386,8 @@ This is the function where the GVN analysis actually *acts* on the code.
 *   **The Transformation:** It replaces redundant expressions with simple ``MOV`` instructions from previously computed results.
 *   **The Cascading Effect:** By replacing a complex ``ADD`` with a simple ``MOV``, it creates new opportunities for the Copy Elimination pass to remove that ``MOV`` too. It's a virtuous cycle of simplification.
 
+.. _gen_inlining:
+
 18.4 Expanding the Horizon: The Inlining Pass (``process_inlines``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -368,6 +396,18 @@ Function calls are expensive. They involve saving registers, manipulating the st
 *   **The Inlining:** ``process_inlines`` looks for calls to small functions. It effectively "copy-pastes" the body of the called function into the caller.
 *   **The Hygiene:** It uses ``rename_regs`` to ensure that the called function's internal variables don't accidentally overwrite the caller's variables.
 *   **The Payoff:** Inlining doesn't just save call overhead; it exposes the called function's code to the caller's optimizer.
+
+.. _gen_pressure_relief:
+
+18.5 Social Distancing for Variables: Pressure Relief
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sometimes, the optimizer gets too excited and packs too many variables into the same small window of code. This creates a "crowd" that the CPU registers can't handle.
+
+*   **The Squeeze**: High register pressure forces the allocator to "spill" variables to the stack (RAM), which is 100x slower than a register.
+*   **The Relief**: ``pressure_relief`` identifies these crowded areas and looks for instructions that can be moved. By "spreading out" the computations, it lowers the peak register demand. It's essentially the compiler's version of traffic control—ensuring that everyone gets a seat on the high-speed register bus.
+
+.. _gen_dse:
 
 19. Cleaning the Warehouses: Dead Store Elimination (DSE)
 ---------------------------------------------------------
@@ -380,6 +420,8 @@ We have already removed redundant loads (reading the same memory twice). Now we 
     *   **Backward Pass:** Tracks which memory locations are "needed" by future instructions or potential function calls.
 *   **The Kill:** If a store writes to a memory location that is guaranteed to be overwritten or is never read again (e.g., a local variable at the end of a function), the store instruction is deleted.
 *   **Alloca Insight:** ``alloca_arg_p`` checks if a pointer passed to a function points to a stack-allocated buffer. This allows the optimizer to reason more effectively about memory isolation.
+
+.. _gen_licm:
 
 20. Escaping the Loop: Loop Invariant Code Motion (LICM)
 -------------------------------------------------------
@@ -409,14 +451,18 @@ Moving code out of a loop involves a tradeoff.
 *   **Register Pressure:** Saving execution time by moving code often "extends" the lifetime of the result register across the entire loop. This increases **Register Pressure**.
 *   **The Decision:** ``loop_licm`` weighs this tradeoff. It prioritizes moving "expensive" instructions (like ``MUL``) while being more selective about simple instructions that might force the Register Allocator to spill other variables to the stack.
 
+.. _gen_ssa_combine:
+
 21. The Merging Pass: Instruction Combining (``ssa_combine``)
-------------------------------------------------------------
+----------------------------------------------------------
 
 Before leaving SSA form, the generator performs one last structural cleanup. ``ssa_combine`` looks for patterns of instructions that can be fused into a single, more powerful operation.
 
 *   **Compare and Branch:** In high-level MIR, you might have an equality check followed by a branch. Most CPUs can perform this in one step. ``ssa_combine`` merges these into a single "branch-if-equal" (``BEQ``) instruction.
 *   **Address Arithmetic:** Physical CPUs often have complex addressing modes (like x86's SIB). ``ssa_combine`` looks for patterns like adding a base and an index and then dereferencing the result. It collapses the math directly into the memory operand (e.g., ``[base + index]``).
 *   **The Benefit:** Fewer instructions mean less work for the Register Allocator and smaller, faster machine code.
+
+.. _gen_liveness:
 
 22. Mapping Existence: Live Range Analysis
 ------------------------------------------
@@ -441,6 +487,8 @@ A variable isn't just "alive" or "dead" for the whole function. It has specific 
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 *   **The Rule:** A variable is alive at the *start* of a block if it was needed by a successor or used within the block before being redefined.
+
+.. _gen_ra:
 
 23. The High-Pressure Zone: Register Pressure & Allocation
 -----------------------------------------------------------
@@ -480,13 +528,15 @@ Physical instructions are messy and have hidden side effects.
 *   **Early Clobbers**: Some instructions overwrite a register *before* they are finished reading their inputs. The generator must identify these "hot zones" to avoid data corruption.
 *   **Call Clobbers**: When a function is called, the CPU's ABI dictates that certain registers may be overwritten. The allocator must ensure that variables needed after the call are either in "callee-saved" registers or have been saved to the stack.
 
+.. _gen_coalesce:
+
 24. The Tetris Endgame: Coalescing and Jump Optimization
---------------------------------------------------------
+---------------------------------------------------------
 
 We are now in the final stages of the generator's middle-end. These passes focus on merging redundant entities—both registers and code blocks.
 
 24.1 Aggressive Register Coalescing (``coalesce``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Even after Copy Propagation, the code may contain many ``MOV`` instructions. Register Coalescing is the process of attempting to assign the source and destination of a ``MOV`` to the **exact same physical register**.
 
@@ -495,7 +545,7 @@ Even after Copy Propagation, the code may contain many ``MOV`` instructions. Reg
 *   **The Result**: The ``MOV`` instruction effectively becomes a no-op (e.g., ``MOV %rax, %rax``) and can be deleted. This reduces both register pressure and the final instruction count.
 
 24.2 The Path Smoother: Jump Optimization (``jump_opt``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Control flow can become fragmented after multiple optimization passes. ``jump_opt`` acts as the **Path Smoother**.
 
@@ -503,6 +553,8 @@ Control flow can become fragmented after multiple optimization passes. ``jump_op
 *   **Trivial Branches**: If a branch instruction targets the very next instruction in the stream, the branch is deleted.
 *   **Chain Jumping**: If a jump leads to another jump, the first instruction is rewritten to target the final destination directly.
 *   **The Payoff**: This simplifies the CFG, reduces the burden on the CPU's branch predictor, and improves instruction cache locality.
+
+.. _gen_phys_ra:
 
 25. The Silicon Conflict: Physical Register Allocation
 -------------------------------------------------------
@@ -541,6 +593,8 @@ If the allocator cannot find any way to fit a variable into silicon, it must **S
 
 *   **``gap_lr_spill_cost``**: This function calculates the execution time penalty of spilling. It essentially counts how many extra ``LOAD`` and ``STORE`` instructions will be executed if the variable lives in memory.
 
+.. _gen_stack:
+
 26. Managing the Overflow: Stack Slot Assignment
 ------------------------------------------------
 
@@ -569,8 +623,10 @@ If a register's address was taken (``ADDR %r1``) and that register was subsequen
 
 *   **``transform_addr``**: While you cannot take the address of a physical register, you *can* take the address of a stack slot. This function calculates the memory address of the spilled variable relative to the Stack Pointer, seamlessly bridging the gap between register-based and memory-based access.
 
+.. _gen_rewrite:
+
 27. The Final Handover: Rewriting and Splitting
------------------------------------------------
+------------------------------------------------
 
 We have arrived at the finish line of the generator's analytical phase. All decisions have been made; now the code must be modified to reflect those decisions.
 
@@ -579,7 +635,7 @@ We have arrived at the finish line of the generator's analytical phase. All deci
 
 This function is the **Translator**. It walks through every instruction and performs the final mapping.
 
-*   **Virtual to Physical**: If a virtual register was assigned a hardware register (e.g., ``%r1`` :math:`ightarrow` ``%rax``), the instruction is updated.
+*   **Virtual to Physical**: If a virtual register was assigned a hardware register (e.g., ``%r1`` :math:`\rightarrow` ``%rax``), the instruction is updated.
 *   **Virtual to Memory**: If a virtual register was spilled to the stack, ``rewrite_insn`` attempts to replace the register operand with a memory operand (``MIR_OP_VAR_MEM``).
 *   **The Shortcut**: ``try_spilled_reg_mem`` is a clever optimization. If an instruction (like ``ADD``) supports reading one of its inputs directly from memory, the generator uses the stack slot directly.
 
@@ -596,6 +652,8 @@ Live range splitting can result in a variable living in a register in one block 
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 After rewriting, many ``MOV`` instructions might become redundant (e.g., ``MOV %rax, %rax``). The ``rewrite`` pass identifies these "noop moves" and deletes them, leaving only the essential machine instructions.
+
+.. _gen_post_ra_combine:
 
 28. The Final Polish: Post-RA Instruction Combining
 ---------------------------------------------------
@@ -624,6 +682,8 @@ As a side effect of merging registers, some instructions become completely point
 
 *   **The Result**: If the Register Allocator assigns two virtual registers to the same physical register (e.g., ``%rax``), an instruction like ``MOV %r1, %r2`` becomes ``MOV %rax, %rax``. The ``rewrite`` pass identifies these "No-Ops" and deletes them, leaving behind purely functional code.
 
+.. _gen_orchestrator:
+
 29. The Orchestrator: ``generate_func_code``
 --------------------------------------------
 
@@ -638,15 +698,39 @@ We have reached the brain of the generator. ``generate_func_code`` is the **Mast
     6.  **Translate**: Execute the final translation into raw machine bytes.
 *   **Performance Tracking**: The orchestrator monitors the time taken for each pass and the final code size, providing data for the JIT's internal diagnostics.
 
+.. _gen_target:
+
 30. Handover to the Metal: Target Translation
 ---------------------------------------------
 
 The final step of the journey is the handover. MIR has done everything it can in the abstract world; now it calls the **Target Backend** (e.g., ``mir-gen-x86_64.c``).
 
-*   **Instruction Selection**: The backend maps refined MIR instructions to the specific binary encoding of the host CPU.
-*   **Rebasing**: Once the code is placed in memory, ``target_rebase`` patches absolute addresses (like calls to other functions or data references).
-*   **Publication**: ``_MIR_publish_code`` marks the memory as **Executable**.
+30.1 Culture Shock: The Machinize Phase
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is where the platform-independent MIR IR learns about the harsh realities of local laws. Every CPU has its own "culture."
+
+*   **Two-Operand Law**: On x86, you can't say ``a = b + c``. You must say ``a = b; a += c``. The ``target_machinize`` pass breaks down complex instructions to fit this 2-operand straitjacket.
+*   **The Return Protocol**: Every CPU has a designated "Return Room" (e.g., the ``RAX`` register). Machinize ensures that values are moved to the correct hardware registers before the function exits.
+*   **The Call ABI**: Different OSs have different rules for passing arguments (on the stack? in registers? which ones?). Machinize handles the tedious bureaucracy of the calling convention.
+
+30.2 Instruction Selection: The Final Choice
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The backend maps refined MIR instructions to the specific binary encoding of the host CPU. This is the moment the "Idea" becomes a "Command."
+
+.. _gen_rebase:
+
+30.3 GPS for Code: Rebasing and Publishing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once the machine code bytes are emitted, they are still "floating" in a temporary buffer.
+
+*   **The Move**: The code is published to its final home in memory via ``_MIR_publish_code``.
+*   **The Rebase**: Because the final memory address is now known, ``target_rebase`` goes through the code and updates every jump and call address. It's like updating the GPS coordinates on a map after you've actually arrived at the destination.
 *   **The Thunk Redirection**: The final act. The lazy thunk placeholder is redirected to the new, high-speed machine code. From this point on, the function executes at native speed.
+
+.. _gen_lazy_bbv:
 
 31. On-Demand Creation: Implementing Lazy BBV
 ---------------------------------------------
@@ -704,7 +788,6 @@ Congratulations on surviving the Generator!
 If a register's address was taken (``ADDR %r1``) and that register was subsequently spilled to the stack, the instruction must be fixed.
 
 *   **``transform_addr``**: While you cannot take the address of a physical register, you *can* take the address of a stack slot. This function calculates the memory address of the spilled variable relative to the Stack Pointer, seamlessly bridging the gap between register-based and memory-based access.
-
 
 
 18. Cleaning the Warehouses: Dead Store Elimination (DSE)

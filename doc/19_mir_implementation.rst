@@ -448,6 +448,8 @@ Bridges MIR to the host C runtime, handling special cases like ``setjmp``.
 
 The nexus point where imports are resolved, inlining is performed, and final function interfaces (interpreter or JIT) are set.
 
+.. _gen_simplify:
+
 38. The Simplifier's Toolbox (``simplify_func``)
 ------------------------------------------------
 
