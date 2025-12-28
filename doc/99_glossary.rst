@@ -95,9 +95,25 @@ Thunk
 Internal Mechanics
 ------------------
 
-Basic Block (BB)
-    A straight-line code sequence with no branches in except to the entry and no branches out except at the exit.
-    *See:* :doc:`04_jit_pipeline`.
+Basic Block Instruction (``bb_insn``)
+    A wrapper for ``MIR_insn_t`` that stores generator-specific metadata, such as liveness information and indices used for data-flow bitmaps.
+    *See:* :doc:`21_mir_generator` (Section 4 & 9).
+
+Death Note (``dead_var_t``)
+    A metadata record attached to an instruction identifying a register whose value is no longer needed after that point. Crucial for register reuse and liveness analysis.
+    *See:* :doc:`21_mir_generator` (Section 10).
+
+Object Cache (Pool)
+    A memory management technique used for small, high-frequency objects (like ``dead_var_t``) where used objects are kept in a free list for reuse instead of being returned to the system heap.
+    *See:* :doc:`21_mir_generator` (Section 10).
+
+Leader
+    The first instruction of a basic block. Leaders are typically labels, jump targets, or instructions immediately following a branch.
+    *See:* :doc:`21_mir_generator` (Section 5).
+
+Preheader
+    A basic block inserted immediately before a loop entry. It provides a guaranteed single execution point for code moved out of the loop by LICM.
+    *See:* :doc:`21_mir_generator` (Section 20).
 
 Dominators
     A block A "dominates" block B if every path from the start to B must go through A. Used for loop detection and code motion.
