@@ -1,11 +1,18 @@
 digraph MIR_Optimization_Pipeline {
     rankdir=TB;
-    node [shape=box, style="filled,rounded", fontname="Arial", fontsize=10, fillcolor="#f9f9f9", color="#333333"];
+    newrank=true; /* Important for mixing ranks between subgraphs if needed, though we generally stay localized */
+    splines=ortho; /* Orthogonal lines look neater for grid layouts */
+    nodesep=0.5;
+    ranksep=0.5;
+    
+    node [shape=box, style="filled,rounded", fontname="Arial", fontsize=10, fillcolor="#f9f9f9", color="#333333", width=1.5];
     edge [color="#666666", penwidth=1.2];
 
-    MIR [shape=ellipse, fillcolor="#e1f5fe", label="MIR IR"];
-    MachineCode [shape=ellipse, fillcolor="#fff3e0", label="Native Machine Code"];
+    /* Terminals */
+    MIR [shape=ellipse, fillcolor="#e1f5fe", label="MIR IR", width=2];
+    MachineCode [shape=ellipse, fillcolor="#fff3e0", label="Native Machine Code", width=2];
 
+    /* FRONTEND */
     subgraph cluster_frontend {
         label = "Frontend / Core";
         style = dashed;
@@ -13,19 +20,29 @@ digraph MIR_Optimization_Pipeline {
         Simplify [label="Simplify\n(Lowering MIR)", fillcolor="#e8f5e9", URL="19_mir_implementation.html#the-simplifier-s-toolbox-simplify-func"];
     }
 
+    /* MIDDLE-END */
     subgraph cluster_middle_end {
         label = "Optimizer (Middle-End)";
         style = dashed;
         color = "#cccccc";
+        
+        /* Row 1: Setup */
+        { rank=same; BuildCFG; BuildSSA; AddrTrans; BlockCloning; }
         
         BuildCFG [label="Build CFG", URL="#the-architect-s-blueprint-build-func-cfg"];
         BuildSSA [label="Build SSA", URL="#the-single-truth-ssa-construction"];
         AddrTrans [label="Address\nTransformation", URL="#from-abstract-to-concrete-address-transformation"];
         BlockCloning [label="Block Cloning", URL="#path-specialization-basic-block-cloning"];
         
+        /* Row 2: SSA Opts */
         subgraph cluster_ssa_opts {
             label = "SSA Optimizations";
             fillcolor="#fafafa";
+            style=filled;
+            color="#eeeeee";
+            
+            { rank=same; GVN; CopyProp; DSE; DCE1; LICM; }
+            
             GVN [label="GVN / CP / RLE", URL="#the-grand-library-global-value-numbering-gvn"];
             CopyProp [label="Copy Propagation", URL="#the-vanishing-act-copy-propagation"];
             DSE [label="Dead Store\nElimination", URL="#cleaning-the-warehouses-dead-store-elimination-dse"];
@@ -33,48 +50,84 @@ digraph MIR_Optimization_Pipeline {
             LICM [label="Loop Invariant\nMotion", URL="#escaping-the-loop-loop-invariant-code-motion-licm"];
         }
         
+        /* Row 3: Teardown */
+        { rank=same; PressureRelief; SSACombine; OutSSA; JumpOpts; }
+        
         PressureRelief [label="Pressure Relief"];
         SSACombine [label="SSA Combine", URL="#the-merging-pass-instruction-combining-ssa-combine"];
         OutSSA [label="Out of SSA", URL="#the-final-handover-conventional-ssa-make-conventional-ssa"];
         JumpOpts [label="Jump Opts", URL="#the-path-smoother-jump-optimization-jump-opt"];
     }
 
+    /* BACKEND */
     subgraph cluster_backend {
         label = "Backend (Target-Specific)";
         style = dashed;
         color = "#cccccc";
         
+        /* Row 4: Preparation */
+        { rank=same; Machinize; BuildLive; BuildConflicts; }
+        
         Machinize [label="Machinize", fillcolor="#fff9c4", URL="#handover-to-the-metal-target-translation"];
         BuildLive [label="Build Live Info", URL="#mapping-existence-live-range-analysis"];
         BuildConflicts [label="Build Register\nConflicts", URL="#aggressive-register-coalescing-coalesce"];
+
+        /* Row 5: Allocation */
+        { rank=same; Coalesce; RA; Combine; DCE2; }
+        
         Coalesce [label="Coalesce"];
         RA [label="Register Allocator\n(Priority Linear Scan)", fillcolor="#ffebee", URL="#the-allocation-war-linear-scan-ra"];
         Combine [label="Combine\n(Code Selection)"];
         DCE2 [label="Dead Code\nElimination"];
+
+        /* Final Step */
         GenMachine [label="Generate Machine\nInstructions", fillcolor="#fff9c4"];
     }
 
+    /* Wiring the flow - The "Snake" Pattern */
+    
+    /* Start */
     MIR -> Simplify;
     Simplify -> BuildCFG;
+    
+    /* Row 1 Flow */
     BuildCFG -> BuildSSA;
     BuildSSA -> AddrTrans;
     AddrTrans -> BlockCloning;
-    BlockCloning -> GVN;
+    
+    /* Row 1 to Row 2 (Down and Left) */
+    BlockCloning -> GVN [dir=forward]; 
+    
+    /* Row 2 Flow */
     GVN -> CopyProp;
     CopyProp -> DSE;
     DSE -> DCE1;
     DCE1 -> LICM;
-    LICM -> PressureRelief;
+    
+    /* Row 2 to Row 3 (Down and Left) */
+    LICM -> PressureRelief [dir=forward];
+    
+    /* Row 3 Flow */
     PressureRelief -> SSACombine;
     SSACombine -> OutSSA;
     OutSSA -> JumpOpts;
-    JumpOpts -> Machinize;
+    
+    /* Row 3 to Row 4 (Backend) */
+    JumpOpts -> Machinize [dir=forward];
+    
+    /* Row 4 Flow */
     Machinize -> BuildLive;
     BuildLive -> BuildConflicts;
-    BuildConflicts -> Coalesce;
+    
+    /* Row 4 to Row 5 */
+    BuildConflicts -> Coalesce [dir=forward];
+    
+    /* Row 5 Flow */
     Coalesce -> RA;
     RA -> Combine;
     Combine -> DCE2;
+    
+    /* Final */
     DCE2 -> GenMachine;
     GenMachine -> MachineCode;
 }
