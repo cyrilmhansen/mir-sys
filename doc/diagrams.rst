@@ -6,13 +6,17 @@ This appendix collects the architectural diagrams found in the codebase.
 Project Overview
 ----------------
 
-**Current State of MIR**
+**Current State of MIR (The Present)**
+
+This diagram shows the existing modular structure: MIR Core, the Interpreter, and the Generator backends for multiple architectures.
 
 .. image:: _static/diagrams/mir3.*
    :align: center
    :alt: Current MIR Architecture
 
-**Future Vision**
+**Future Vision (The Horizon)**
+
+The long-term plan for MIR, including additional optimization passes and broader architecture support.
 
 .. image:: _static/diagrams/mirall.*
    :align: center
@@ -21,7 +25,7 @@ Project Overview
 JIT Internal Pipeline
 ---------------------
 
-The following diagram illustrates the transformation phases within `mir-gen.c`.
+The following diagram illustrates the transformation phases within `mir-gen.c`. It highlights the path from abstract IR to native machine code, including SSA form, optimization loops, and the "Allocation War" of register assignment.
 
 .. image:: _static/diagrams/mir-gen.*
    :align: center
@@ -30,7 +34,7 @@ The following diagram illustrates the transformation phases within `mir-gen.c`.
 C to MIR Compiler
 -----------------
 
-Structure of the `c2mir` compiler.
+Structure of the `c2mir` compiler. This diagram shows the four-pass alchemy: Lexer/Preprocessor, Recursive Descent Parser, Semantic Context Pass, and the final emission of MIR instructions.
 
 .. image:: _static/diagrams/c2mir.*
    :align: center

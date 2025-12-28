@@ -1,5 +1,6 @@
 The Machine Code Generator: Implementation of ``mir-gen.c``
 ================================================================================
+=====================
 
 We have already conquered the high peaks of the MIR Core. We have seen how functions are born, how data is laid out, and how the universe is saved and loaded.
 

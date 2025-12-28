@@ -41,7 +41,7 @@ In textual MIR, jumps target labels. In the ICode array, labels don't exist; the
 *   **Speed**: This turns a symbolic search into a simple array index jump, keeping the simulator's heart beating fast.
 
 3. The Heartbeat: The Main Interpretation Loop (``eval``)
---------------------------------------------------------
+--------------------------------------------------------------------------------
 
 Once the script is translated into ICode, the interpreter enters its main loop: ``eval``. This function is the processor's virtual soul.
 

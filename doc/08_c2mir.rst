@@ -76,7 +76,7 @@ One of the oldest riddles in C compiler design is the **Lexer Hack**. Because C 
 .. _c2m_context_pass:
 
 4. The Context Pass: Semantic Enlightenment
-------------------------------------------
+--------------------------------------------------------------------------------
 
 Once the AST is built, it is a "skeleton" of the program. The **Context Pass** (the ``check`` function) provides the "soul" by adding type information and verifying C's strict rules.
 
