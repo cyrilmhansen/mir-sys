@@ -775,16 +775,156 @@ Just like the writer had a compressor, the reader has a decompressor (``reduce_d
 
 *   **The Detail:** The binary reader doesn't read from the file directly. It pulls bytes from the *decompression engine*, which pulls from the file. The complexity of LZ-style compression is completely hidden from the MIR parsing logic.
 
-67. The End of ``mir.c``
-------------------------
+68. The Scroll Reader: ``MIR_scan_string``
 
-We have reached the absolute end of the core file. We have seen the birth, life, death, and resurrection (IO) of MIR code.
+------------------------------------------
 
-*   **The Adventure:** We started with empty structs and ended with a fully serializable, optimizing, dynamic compiler infrastructure.
-*   **The Next Chapter:** The ``mir.c`` file is the **Mind**. It understands the *meaning* of the code. But it cannot *execute* it. To run, we need a **Body**. We need machine code.
 
-Our journey must now cross the bridge to **``mir-gen.c``**. That is where the abstract ``MIR_ADD`` becomes a concrete ``0x01 0xC8`` (x86 add). That is where the infinite virtual registers clash for survival in the finite physical register file. That is the realm of the **Backend**.
+
+We are back in the library, but this time we are not deciphering cryptic binary seals. We are reading the ancient scrolls of **Textual MIR**.
+
+
+
+This function is a monolithic parser. It reads the string, character by character, and rebuilds the entire world.
+
+
+
+68.1 Originality: The Universal Parser
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+Most compilers separate Lexing (Tokenizing) and Parsing into distinct phases or files (like Flex and Bison). ``MIR_scan_string`` does it all in one massive loop.
+
+
+
+*   **The Originality:** It's a hand-written, recursive-descent-ish parser that switches behavior based on context flags (``func_p``, ``proto_p``, ``module_p``). It handles everything from keywords to floating-point literals to string escapes in a single pass.
+
+*   **The Convention:** It uses ``setjmp`` / ``longjmp`` for error handling. If ``scan_error`` is called deep in a nested helper, it unwinds the stack instantly back to the main loop, prints the error, and halts. This avoids the tedious error-code-checking clutter found in many C parsers.
+
+
+
+68.2 The Hidden Detail: The Contextual Chameleon
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+An inexperienced reader might miss how the parser handles **operands**.
+
+Depending on the flags (``proto_p``, ``func_p``, ``local_p``), the same token sequence ``i64:foo`` means completely different things:
+
+
+
+*   Inside a ``proto``: It creates a typed argument.
+
+*   Inside ``local``: It creates a stack variable.
+
+*   Inside a data definition: It's a syntax error.
+
+
+
+The parser maintains a complex internal state to know exactly what "mode" it is in.
+
+
+
+68.3 The Label Hunt
+
+~~~~~~~~~~~~~~~~~~~
+
+
+
+Labels in text are tricky. They can appear before an instruction, or on a line by themselves.
+
+
+
+*   **The Mechanism:** The parser accumulates labels in ``label_names``. It doesn't create the label object until it sees the instruction following it. Then, it attaches *all* pending labels to that one instruction.
+
+*   **The Reserved Name Check:** It constantly checks ``process_reserved_name`` to ensure user labels don't collide with the generator's internal temp labels (``.lc0``).
+
+
+
+69. The Inter-Process Pipes (``popen``)
+
+---------------------------------------
+
+
+
+When you ask MIR to dump code, it doesn't just print hex bytes.
+
+
+
+*   **The Hack:** It writes a C file (``_mir_PID.c``) to disk containing the raw bytes.
+
+*   **The Call:** It invokes ``gcc`` and ``objdump`` via ``popen``. It effectively uses the system's own disassembler to pretty-print the JIT-generated code back to the user.
+
+*   **The Result:** You see ``mov %rax, %rbx`` instead of ``48 89 C3``.
+
+
+
+70. The Hard Register Registry
+
+------------------------------
+
+
+
+Finally, we see the initialization of **Hard Registers**.
+
+
+
+.. code-block:: c
+
+
+
+    static void hard_reg_name_init (MIR_context_t ctx)
+
+
+
+Every architecture (x86_64, ARM64, etc.) has its own set of register names (``rax``, ``r1``, ``v0``).
+
+
+
+*   **The Bridge:** This function takes the ``target_hard_reg_names`` array (defined in the target-specific header) and registers them all in a hash table.
+
+*   **The Purpose:** This allows the parser to recognize ``rax`` as a valid register operand, mapping the string "rax" to the internal ID ``0``.
+
+
+
+The Grand Finale of ``mir.c``
+
+-----------------------------
+
+
+
+We have reached the end of the source file. The journey through the Core is complete.
+
+We have seen:
+
+
+
+*   **The Foundation:** Memory, Lists, Vectors.
+
+*   **The Structure:** Contexts, Modules, Functions.
+
+*   **The Language:** Instructions, Operands, Types.
+
+*   **The IO:** Binary serialization and Text parsing.
+
+*   **The Optimization:** Simplification and Inlining.
+
+
+
+The **Mind** of the compiler is fully formed. It can read, write, understand, and optimize code. But it is still a brain in a jar. It needs a body to interact with the physical world.
+
+
+
+That body is **``mir-gen.c``**. That is where the abstract ``MIR_ADD`` becomes a concrete ``ADD`` on the silicon. That is where we go next.
+
+
 
 Gather your things. The abstract world is behind us. The concrete world of assembly awaits.
+
+
 
 **End of `mir.c` Deep Dive.**
