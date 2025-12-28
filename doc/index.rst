@@ -15,6 +15,7 @@ The Anatomy of a C JIT
    17_mir_context_modules
    18_mir_api
    19_mir_implementation
+   20_mir_optimizations
    03_interpreter
    04_jit_pipeline
    10_modules_and_linking
