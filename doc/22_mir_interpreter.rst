@@ -180,6 +180,41 @@ The final piece of the interpreter puzzle is how it integrates into the host pro
     3.  The interpreter extracts the arguments from the ``va_list``, runs the code, and puts the result back into the physical registers.
 *   **The Result**: To the rest of the application, the interpreted function is indistinguishable from a compiled one. It has a real address and obeys the standard ABI.
 
+7. The Physical Limits: ``MIR_ALLOCA`` and Stack Management
+-----------------------------------------------------------
+
+One of the most delicate areas of the interpreter's simulation is the implementation of ``MIR_ALLOCA`` (dynamic stack allocation).
+
+7.1 The Host's Shadow: Using C ``alloca``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The interpreter implements ``MIR_ALLOCA`` by calling the host's native C ``alloca`` function.
+
+*   **The Direct Link**: When the virtual program asks for 1KB of stack space, the interpreter's ``eval`` loop calls ``alloca(1024)`` on the **physical host stack**.
+*   **The Benefit**: This is extremely fast and ensures that the allocated memory is close to the interpreter's own state (the ``bp`` array), maintaining high cache locality.
+
+7.2 The Loop Trap: Memory Persistence
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Because the interpreter executes an entire MIR function within a single call to the ``eval`` loop, ``MIR_ALLOCA`` memory has **Function Scope**, not block scope.
+
+*   **The Danger**: If an interpreted program calls ``MIR_ALLOCA`` inside a loop (e.g., a ``while`` loop that runs 10,000 times), the physical stack will grow 10,000 times. The memory is **not reclaimed** until the interpreted function returns.
+*   **The Limit**: This can lead to a host-level **Stack Overflow** even if the virtual program appears logically sound. Users should avoid calling ``alloca`` inside loops in interpreted code.
+
+7.3 Block-Level Recovery: ``MIR_BSTART`` and ``MIR_BEND``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To mitigate these limits, MIR supports explicit stack markers:
+
+*   **``MIR_BSTART``**: Snapshots the current stack pointer.
+*   **``MIR_BEND``**: Restores the stack pointer to a previous snapshot.
+*   **The Implementation**: These opcodes use machine-dependent built-ins (like ``_MIR_get_bend_builtin``) to manually manipulate the CPU's Stack Pointer (e.g., ``RSP`` on x86). This is a rare case where the "Simulator" breaks the fourth wall and directly rearranges the host's own silicon state to reclaim memory.
+
+.. note::
+   **Historical Lore: The Dangerous Beauty of ``alloca``**
+   
+   The ``alloca`` function has been a point of contention since the 1970s. It was not part of the original C standard (ANSI C89) because it is inherently un-portable—it requires direct knowledge of how the stack works. However, it is so useful for performance that almost every compiler (including GCC and Clang) implements it as a built-in. MIR continues this tradition of "Dangerous Beauty" by leveraging ``alloca`` for its speed while warning the alchemist of its hidden thorns.
+
 Conclusion: The Simulator's Triumph
 -----------------------------------
 

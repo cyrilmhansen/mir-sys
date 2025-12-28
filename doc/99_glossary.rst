@@ -203,6 +203,14 @@ Alias Analysis
     The mechanism for determining if two pointers might refer to the same memory location. MIR uses ``alias`` and ``nonalias`` sets to guide this.
     *See:* :doc:`15_mir_memory`, :doc:`19_mir_implementation` (Section 10).
 
+ALLOCA (``MIR_ALLOCA``)
+    An instruction for dynamic memory allocation on the stack. In the interpreter, this is implemented using the host's ``alloca`` function and is subject to the host's stack limits.
+    *See:* :doc:`22_mir_interpreter` (Section 7).
+
+BSTART / BEND (Block Stack Management)
+    Instructions used to snapshot (``BSTART``) and restore (``BEND``) the stack pointer, effectively providing block-scoped memory management for ``MIR_ALLOCA``.
+    *See:* :doc:`22_mir_interpreter` (Section 7.3).
+
 ISA (Instruction Set Architecture)
     The specific set of opcodes (e.g., ``MIR_ADD``, ``MIR_MOV``) defined by the MIR virtual machine.
     *See:* :doc:`13_mir_header`.
