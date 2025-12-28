@@ -1,5 +1,5 @@
 MIR Data Type Reference Guide
-============================
+=============================
 
 This guide provides an elaboration on the ``MIR_type_t`` enumeration and related definitions from the ``mir.h`` file. It covers MIR's data types, their properties, and how they relate to the underlying hardware and ABI.
 
@@ -95,20 +95,8 @@ These types are crucial for handling aggregate data (structs, arrays) in functio
 *   **``MIR_type_t`` (``MIR_T_UNDEF``, ``MIR_T_BOUND``)**:
     *   ``MIR_T_UNDEF``: Represents an undefined or uninitialized type, often used for error states or placeholders during compilation.
     *   ``MIR_T_BOUND``: An internal marker indicating the end of the ``MIR_type_t`` enumeration.
-*   **``MIR_scale_t``**:
-    *   ``typedef uint8_t MIR_scale_t;``
-    *   Represents the **scale factor** for an index register in memory addressing (e.g., in ``[base + index * scale + disp]``). Typical values are 1, 2, 4, 8, reflecting element sizes.
-    *   ``#define MIR_MAX_SCALE UINT8_MAX`` defines the maximum possible scale value.
-*   **``MIR_disp_t``**:
-    *   ``typedef int64_t MIR_disp_t;``
-    *   Represents a signed 64-bit **displacement** (offset) used in memory addressing.
-*   **``MIR_reg_t``**:
-    *   ``typedef uint32_t MIR_reg_t;``
-    *   Represents a **register number**. In MIR, this can be a pseudo-register (virtual register managed by the compiler) or a physical hardware register. Register numbers ``> MAX_HARD_REG`` are pseudos.
-    *   ``#define MIR_MAX_REG_NUM UINT32_MAX`` and ``#define MIR_NON_VAR MIR_MAX_REG_NUM`` are used for internal representation, where ``MIR_NON_VAR`` signifies the absence of a register (e.g., an operand slot that doesn't use a register).
-*   **``MIR_imm_t``**:
-    *   ``typedef union { int64_t i; uint64_t u; float f; double d; long double ld; } MIR_imm_t;``
-    *   A union type to hold immediate (constant) values, allowing flexibility across different literal types.
-*   **``MIR_alias_t``**:
-    *   ``typedef uint32_t MIR_alias_t;``
-    *   A unique identifier used to represent an **alias name**. This is critical for alias analysis in optimization passes, allowing the compiler to determine if different memory access instructions might refer to the same physical memory location.
+*   **``MIR_scale_t``**: ``typedef uint8_t MIR_scale_t;`` Represents the **scale factor** for an index register in memory addressing (e.g., in ``[base + index * scale + disp]``). Typical values are 1, 2, 4, 8, reflecting element sizes. ``#define MIR_MAX_SCALE UINT8_MAX`` defines the maximum possible scale value.
+*   **``MIR_disp_t``**: ``typedef int64_t MIR_disp_t;`` Represents a signed 64-bit **displacement** (offset) used in memory addressing.
+*   **``MIR_reg_t``**: ``typedef uint32_t MIR_reg_t;`` Represents a **register number**. In MIR, this can be a pseudo-register (virtual register managed by the compiler) or a physical hardware register. Register numbers ``> MAX_HARD_REG`` are pseudos. ``#define MIR_MAX_REG_NUM UINT32_MAX`` and ``#define MIR_NON_VAR MIR_MAX_REG_NUM`` are used for internal representation, where ``MIR_NON_VAR`` signifies the absence of a register (e.g., an operand slot that doesn't use a register).
+*   **``MIR_imm_t``**: ``typedef union { int64_t i; uint64_t u; float f; double d; long double ld; } MIR_imm_t;`` A union type to hold immediate (constant) values, allowing flexibility across different literal types.
+*   **``MIR_alias_t``**: ``typedef uint32_t MIR_alias_t;`` A unique identifier used to represent an **alias name**. This is critical for alias analysis in optimization passes, allowing the compiler to determine if different memory access instructions might refer to the same physical memory location.

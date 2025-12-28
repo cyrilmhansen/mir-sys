@@ -26,6 +26,10 @@ Item (``MIR_item_t``)
     The fundamental unit of content within a module. Items can be functions, global variables (data/bss), prototypes, or symbol declarations (import/export).
     *See:* :doc:`16_mir_architecture`, :doc:`19_mir_implementation` (Section 20).
 
+Builtin
+    A predefined function or prototype provided by the MIR environment to handle essential operations (like memory moves) or to bridge the gap to native host functions.
+    *See:* :doc:`19_mir_implementation` (Section 60 & 61).
+
 Data Types & Memory
 -------------------
 

@@ -87,6 +87,19 @@ typedef void MIR_NO_RETURN (*MIR_error_func_t) (MIR_error_type_t error_type, con
    o A register in program can contain only one type values: integer,
      float, double, or long double.
    o Operand types should be what the insn expects */
+/**
+ * @brief MIR Instruction Set Architecture (ISA)
+ *
+ * This enumeration defines all valid opcodes for the MIR virtual machine.
+ * Most instructions follow a 2 or 3 operand format: `DEST = SRC1 op SRC2`.
+ *
+ * Key categories:
+ * - **Moves & Conversions**: `MOV`, `EXT`, `I2F`, etc.
+ * - **Arithmetic**: `ADD`, `SUB`, `MUL`, `DIV`.
+ * - **Control Flow**: `JMP`, `BT` (Branch True), `BF` (Branch False).
+ * - **Function Calls**: `CALL`, `RET`.
+ * - **Varargs**: `VA_START`, `VA_ARG`, `VA_END`.
+ */
 typedef enum {
   /* Abbreviations:
      I - 64-bit int, S - short (32-bit), U - unsigned, F -float, D - double, LD - long double.  */
@@ -162,6 +175,15 @@ typedef enum {
 
 #define MIR_BLK_NUM 5
 /* Data types: */
+/**
+ * @brief MIR Data Types
+ *
+ * MIR supports a concise set of primitive types that map directly to hardware capabilities.
+ *
+ * - **Integer**: `I8` to `I64` (signed/unsigned).
+ * - **Floating Point**: `F` (float), `D` (double), `LD` (long double).
+ * - **Special**: `P` (pointer), `BLK` (memory block), `RBLK` (return block).
+ */
 typedef enum {
   REP8 (TYPE_EL, I8, U8, I16, U16, I32, U32, I64, U64), /* Integer types of different size: */
   REP3 (TYPE_EL, F, D, LD),                             /* Float or (long) double type */
@@ -250,7 +272,13 @@ struct MIR_str {
 
 typedef struct MIR_str MIR_str_t;
 
-/* An insn operand */
+/**
+ * @brief Instruction Operand
+ *
+ * Represents a single operand in a MIR instruction.
+ * An operand can be a register, an immediate value (integer/float), a memory reference,
+ * or a reference to another MIR item (like a function or label).
+ */
 typedef struct {
   void *data; /* Aux data  */
   MIR_op_mode_t mode : 8;
@@ -278,6 +306,12 @@ typedef struct MIR_insn *MIR_insn_t;
 /* Definition of link of double list of insns */
 DEF_DLIST_LINK (MIR_insn_t);
 
+/**
+ * @brief MIR Instruction Node
+ *
+ * A node in the doubly-linked list of instructions that make up a function body.
+ * Contains the opcode (`code`), number of operands (`nops`), and the array of operands (`ops`).
+ */
 struct MIR_insn {
   void *data; /* Aux data */
   DLIST_LINK (MIR_insn_t) insn_link;

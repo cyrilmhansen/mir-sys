@@ -66,7 +66,26 @@ static inline void MIR_VARR_NO_RETURN mir_varr_error (const char *message) {
 
 #define VARR_DEFAULT_SIZE 64
 
-/* Vector of pointer to object.  */
+/**
+ * @defgroup mir_containers MIR Containers
+ * @brief Generic, type-safe container implementations using C macros.
+ * @{
+ */
+
+/**
+ * @brief Generic Variable Length Array (Vector) Generator
+ *
+ * This macro system generates type-safe vector implementations.
+ *
+ * Usage:
+ * @code
+ *   DEF_VARR(int);           // Define VARR(int) type and functions
+ *   VARR(int) *my_vec;
+ *   VARR_CREATE(int, my_vec, alloc, 0);
+ *   VARR_PUSH(int, my_vec, 42);
+ *   int val = VARR_GET(int, my_vec, 0);
+ * @endcode
+ */
 #define DEF_VARR(T)                                                                           \
   VARR_T (T);                                                                                 \
                                                                                               \
@@ -194,3 +213,4 @@ static inline void MIR_VARR_NO_RETURN mir_varr_error (const char *message) {
 #endif
 
 #endif /* #ifndef MIR_VARR_H */
+/** @} */

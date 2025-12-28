@@ -250,7 +250,7 @@ Group B: Type Conversion & Extension
 Instructions that change the bit-width or format of data.
 
 *   **Extensions:** ``EXT`` (Sign-extend), ``UEXT`` (Zero-extend). Available for 8, 16, and 32 bits.
-*   **Int ↔ Float:** ``I2F`` (Int to Float), ``F2I`` (Float to Int), and variations for Double/Long Double.
+*   **Int <-> Float:** ``I2F`` (Int to Float), ``F2I`` (Float to Int), and variations for Double/Long Double.
 
 Group C: Arithmetic Operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

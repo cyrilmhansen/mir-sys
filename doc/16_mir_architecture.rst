@@ -1,5 +1,5 @@
 MIR Instruction Architecture & Data Structures
-============================================
+==============================================
 
 This chapter details the internal C structures used to represent the MIR Intermediate Representation. Understanding these structures is essential for traversing the IR, writing optimization passes, or interacting with the generator internals.
 
@@ -17,7 +17,7 @@ The ``mode`` field in ``MIR_op_t`` determines which field of the union is valid.
 
 .. list-table::
    :header-rows: 1
-   :widths: 20 20 60
+   :widths: 45 15 40
 
    * - Mode Enumerator
      - C Type in Union
@@ -192,7 +192,7 @@ The ``item_type`` field determines which member of the union ``u`` is valid.
 
 .. list-table::
    :header-rows: 1
-   :widths: 25 25 50
+   :widths: 40 20 40
 
    * - Enum Value
      - Payload Field

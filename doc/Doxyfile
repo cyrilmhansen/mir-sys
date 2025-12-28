@@ -1,13 +1,22 @@
 PROJECT_NAME           = "MIR"
 PROJECT_NUMBER         = 0.2
 OUTPUT_DIRECTORY       = _build
-GENERATE_XML           = NO
+GENERATE_XML           = YES
 GENERATE_HTML          = YES
 HTML_OUTPUT            = doxygen-html
 GENERATE_LATEX         = NO
 HAVE_DOT               = YES
+COLLABORATION_GRAPH    = YES
+INCLUDE_GRAPH          = YES
+INCLUDED_BY_GRAPH      = YES
+DIRECTORY_GRAPH        = YES
+GRAPHICAL_HIERARCHY    = YES
+CALL_GRAPH             = YES
+CALLER_GRAPH           = YES
 DOT_IMAGE_FORMAT       = svg
-INTERACTIVE_SVG        = YES
+DOT_UML_DETAILS        = NO
+DOT_WRAP_THRESHOLD     = 0
+DOT_CLEANUP            = NO
 DOT_GRAPH_MAX_NODES    = 64
 CALL_GRAPH             = YES
 CALLER_GRAPH           = YES
@@ -16,7 +25,8 @@ CALLER_GRAPH           = YES
 # from architecture-specific backends and internal implementation files.
 INPUT                  = ../mir/mir.h \
                          ../mir/mir-gen.h \
-                         ../mir/c2mir/c2mir.h
+                         ../mir/c2mir/c2mir.h \
+                         ../mir/mir-varr.h
 RECURSIVE              = YES
 OPTIMIZE_OUTPUT_FOR_C  = YES
 EXTENSION_MAPPING      = c=C h=C
@@ -66,21 +76,21 @@ PREDEFINED             = \
     "HTAB(T)=struct HTAB_##T" \
     "DLIST(T)=struct DLIST_##T" \
     "DLIST_LINK(T)=struct DLIST_LINK_##T" \
-    "REP8(M, a1, a2, a3, a4, a5, a6, a7, a8)= M(a1); M(a2); M(a3); M(a4); M(a5); M(a6); M(a7); M(a8);" \
-    "REP7(M, a1, a2, a3, a4, a5, a6, a7)= M(a1); M(a2); M(a3); M(a4); M(a5); M(a6); M(a7);" \
-    "REP6(M, a1, a2, a3, a4, a5, a6)= M(a1); M(a2); M(a3); M(a4); M(a5); M(a6);" \
-    "REP5(M, a1, a2, a3, a4, a5)= M(a1); M(a2); M(a3); M(a4); M(a5);" \
-    "REP4(M, a1, a2, a3, a4)= M(a1); M(a2); M(a3); M(a4);" \
-    "REP3(M, a1, a2, a3)= M(a1); M(a2); M(a3);" \
-    "REP2(M, a1, a2)= M(a1); M(a2);" \
-    "TAG_EL(x)=TAG_##x," \
-    "TYPE_EL(x)=MIR_T_##x," \
-    "OP_EL(x)=MIR_OP_##x," \
-    "INSN_EL(x)=MIR_##x," \
-    "ERR_EL(x)=MIR_##x##_error," \
-    "HREG_EL(x)=x##_HARD_REG," \
-    "TC_EL(x)=TC_##x," \
-    "ITEM_EL(x)=MIR_##x##_item," \
+    "REP8(M, a1, a2, a3, a4, a5, a6, a7, a8)= M(a1), M(a2), M(a3), M(a4), M(a5), M(a6), M(a7), M(a8)" \
+    "REP7(M, a1, a2, a3, a4, a5, a6, a7)= M(a1), M(a2), M(a3), M(a4), M(a5), M(a6), M(a7)" \
+    "REP6(M, a1, a2, a3, a4, a5, a6)= M(a1), M(a2), M(a3), M(a4), M(a5), M(a6)" \
+    "REP5(M, a1, a2, a3, a4, a5)= M(a1), M(a2), M(a3), M(a4), M(a5)" \
+    "REP4(M, a1, a2, a3, a4)= M(a1), M(a2), M(a3), M(a4)" \
+    "REP3(M, a1, a2, a3)= M(a1), M(a2), M(a3)" \
+    "REP2(M, a1, a2)= M(a1), M(a2)" \
+    "TAG_EL(x)=TAG_##x" \
+    "TYPE_EL(x)=MIR_T_##x" \
+    "OP_EL(x)=MIR_OP_##x" \
+    "INSN_EL(x)=MIR_##x" \
+    "ERR_EL(x)=MIR_##x##_error" \
+    "HREG_EL(x)=x##_HARD_REG" \
+    "TC_EL(x)=TC_##x" \
+    "ITEM_EL(x)=MIR_##x##_item" \
     "uint8_t=unsigned char" \
     "uint16_t=unsigned short" \
     "uint32_t=unsigned int" \
@@ -92,10 +102,6 @@ PREDEFINED             = \
     "mir_ulong=unsigned long" \
     "mir_ullong=unsigned long long" \
     "size_t=unsigned long" \
-    "MIR_type_t=int" \
-    "MIR_reg_t=unsigned int" \
-    "MIR_insn_code_t=int" \
-    "MIR_op_mode_t=int" \
     "D(f)=static node_t f(c2m_ctx_t c2m_ctx, int no_err_p)" \
     "DA(f)=static node_t f(c2m_ctx_t c2m_ctx, int no_err_p, node_t arg)" \
     "P(f)=" "PT(t)=" "PTP(t, p)=" "PTN(t)=" "PE(f, l)=" "PTE(t, p, l)="
